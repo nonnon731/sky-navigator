@@ -196,22 +196,6 @@
         </div>
     </div>
     
-    <div class="controls">
-        <h3>🎮 ゲームの流れ</h3>
-        <p><strong>1. 名前入力</strong> → <strong>2. 操作説明</strong> → <strong>3. ゲーム開始</strong></p>
-        
-        <h3>🎯 アイテム</h3>
-        <div class="item-info">
-            <div class="item" style="border-left: 4px solid #FFD700;">🪙 コイン: 10点</div>
-            <div class="item" style="border-left: 4px solid #00FFFF;">💎 ジェム: 50点</div>
-            <div class="item" style="border-left: 4px solid #FF69B4;">⭐ スター: 100点</div>
-            <div class="item" style="border-left: 4px solid #FFFFFF;">💠 ダイヤ: 200点</div>
-        </div>
-        
-        <p><strong>目標</strong>: 障害物を避けながらアイテムを集めて、できるだけ長く生き残ろう！</p>
-        <p><strong>注意</strong>: ゲームを始めるには名前の入力が必要です</p>
-    </div>
-
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -405,11 +389,23 @@
             lastObstacleTime = 0;
             lastItemTime = 0;
             isMouseDown = false;
+            
+            // 全ての画面を非表示にする
             document.getElementById('titleScreen').style.display = 'none';
+            document.getElementById('instructionsScreen').style.display = 'none';
+            document.getElementById('nameScreen').style.display = 'none';
+            document.getElementById('rankingScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'none';
         }
         
         function restartGame() {
+            // 全ての画面を非表示にする
+            document.getElementById('titleScreen').style.display = 'none';
+            document.getElementById('instructionsScreen').style.display = 'none';
+            document.getElementById('nameScreen').style.display = 'none';
+            document.getElementById('rankingScreen').style.display = 'none';
             document.getElementById('gameOverScreen').style.display = 'none';
+            
             startGame();
         }
         
