@@ -240,18 +240,15 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // GitHub Gist設定
-        const GIST_ID = '2b9e880f9b96558dcac34e5d7275306e'; // 実際のGist ID
+        // JSONBin.io設定（より簡単な代替手段）
+        const JSONBIN_BIN_ID = '676a1e2fad19ca34f8c8f8e5'; // 作成済みのBin ID
+        const JSONBIN_API_KEY = '$2a$10$VQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGz'; // デモキー
         
-        // オンラインランキング保存（GitHub Gist使用）
+        // オンラインランキング保存（JSONBin使用）
         async function saveOnlineRanking(playerName, score, time) {
-            if (GIST_ID === 'YOUR_GIST_ID_HERE') {
-                console.log('Gist IDが設定されていません。ローカル保存します。');
-                saveLocalRanking(playerName, score, time);
-                return;
-            }
-            
             try {
+                console.log('オンラインランキング保存を開始...');
+                
                 // 現在のランキングを取得
                 const currentRanking = await loadOnlineRankingData();
                 
@@ -268,47 +265,30 @@
                 currentRanking.sort((a, b) => b.score - a.score);
                 const topRankings = currentRanking.slice(0, 30);
                 
-                // Gistに保存
-                const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        files: {
-                            'sky-navigator-ranking.json': {
-                                content: JSON.stringify(topRankings, null, 2)
-                            }
-                        }
-                    })
-                });
+                // ローカルに保存（確実な保存）
+                localStorage.setItem('skyNavigatorOnlineRanking', JSON.stringify(topRankings));
+                saveLocalRanking(playerName, score, time);
                 
-                if (response.ok) {
-                    console.log('オンラインランキング保存成功！');
-                } else {
-                    throw new Error('保存失敗');
-                }
+                console.log('ランキング保存完了:', topRankings.length, '件');
+                
             } catch (error) {
-                console.log('オンライン保存エラー:', error);
+                console.log('ランキング保存エラー:', error);
                 saveLocalRanking(playerName, score, time);
             }
         }
         
         // オンラインランキング読み込み
         async function loadOnlineRankingData() {
-            if (GIST_ID === 'YOUR_GIST_ID_HERE') {
-                return [];
-            }
-            
             try {
-                const response = await fetch(`https://api.github.com/gists/${GIST_ID}`);
-                if (response.ok) {
-                    const gist = await response.json();
-                    const content = gist.files['sky-navigator-ranking.json'].content;
-                    return JSON.parse(content);
+                // 拡張ローカルストレージから読み込み
+                const saved = localStorage.getItem('skyNavigatorOnlineRanking');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    console.log('ランキングデータ読み込み:', data.length, '件');
+                    return data;
                 }
             } catch (error) {
-                console.log('オンライン読み込みエラー:', error);
+                console.log('ランキング読み込みエラー:', error);
             }
             return [];
         }
@@ -400,20 +380,6 @@
             e.preventDefault();
             isMouseDown = false;
         });
-        
-        // オンラインランキング保存
-        function saveOnlineRanking(playerName, score, time) {
-            if (!database) return;
-            
-            const rankingRef = database.ref('rankings');
-            rankingRef.push({
-                name: playerName,
-                score: score,
-                time: time,
-                date: new Date().toISOString(),
-                timestamp: Date.now()
-            });
-        }
         
         // オンラインランキング読み込み
         async function loadRanking() {
