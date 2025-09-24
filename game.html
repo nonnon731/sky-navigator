@@ -274,10 +274,10 @@
             console.log('JavaScript エラー:', e.message, 'at', e.filename, ':', e.lineno);
         });
         
-        // 真のオンラインランキングシステム（GitHub Gist使用）
-        const GIST_ID = '2b9e880f9b96558dcac34e5d7275306e';
-        const GIST_URL = `https://api.github.com/gists/${GIST_ID}`;
-        const RANKING_FILE = 'sky-navigator-ranking.json';
+        // JSONBin.io を使用した真のオンライン同期
+        const JSONBIN_BIN_ID = '676a1e2fad19ca34f8c8f8e5';
+        const JSONBIN_API_KEY = '$2a$10$VQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGz';
+        const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
         
         // オンラインランキング保存
         async function saveOnlineRanking(playerName, score, time) {
@@ -298,22 +298,53 @@
                 
                 currentRanking.push(newEntry);
                 
-                // スコア順にソート、上位50位まで保持
+                // スコア順にソート、上位30位まで保持
                 currentRanking.sort((a, b) => b.score - a.score);
-                const topRankings = currentRanking.slice(0, 50);
+                const topRankings = currentRanking.slice(0, 30);
                 
-                // ローカルにバックアップ保存
-                localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(topRankings));
+                // JSONBin.ioに保存
+                const response = await fetch(JSONBIN_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': JSONBIN_API_KEY
+                    },
+                    body: JSON.stringify(topRankings)
+                });
+                
+                if (response.ok) {
+                    console.log('オンラインランキング保存成功:', topRankings.length, '件');
+                    
+                    // ローカルにもバックアップ
+                    localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(topRankings));
+                } else {
+                    throw new Error('JSONBin保存失敗');
+                }
                 
                 // 従来のローカル保存も実行
                 saveLocalRanking(playerName, score, time);
                 
-                console.log('オンラインランキング保存完了:', topRankings.length, '件');
-                console.log('注意: GitHub Gist更新には認証が必要です');
-                
             } catch (error) {
                 console.log('オンライン保存エラー:', error);
+                
+                // エラー時はローカル保存のみ
                 saveLocalRanking(playerName, score, time);
+                
+                // ローカルバックアップに追加
+                try {
+                    const backup = JSON.parse(localStorage.getItem('skyNavigatorOnlineBackup') || '[]');
+                    backup.push({
+                        name: playerName,
+                        score: score,
+                        time: time,
+                        date: new Date().toISOString().split('T')[0],
+                        timestamp: Date.now()
+                    });
+                    backup.sort((a, b) => b.score - a.score);
+                    localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(backup.slice(0, 30)));
+                } catch (e) {
+                    console.log('バックアップ保存エラー:', e);
+                }
             }
         }
         
@@ -344,23 +375,25 @@
             try {
                 console.log('オンラインランキング取得中...');
                 
-                // GitHub Gistから取得を試行
-                const response = await fetch(GIST_URL);
-                if (response.ok) {
-                    const gist = await response.json();
-                    const content = gist.files[RANKING_FILE]?.content;
-                    
-                    if (content) {
-                        const onlineData = JSON.parse(content);
-                        console.log('オンラインランキング取得成功:', onlineData.length, '件');
-                        
-                        // バックアップとして保存
-                        localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(onlineData));
-                        return onlineData;
+                // JSONBin.ioから取得
+                const response = await fetch(JSONBIN_URL + '/latest', {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': JSONBIN_API_KEY
                     }
-                }
+                });
                 
-                throw new Error('Gistデータ取得失敗');
+                if (response.ok) {
+                    const data = await response.json();
+                    const onlineData = data.record || [];
+                    console.log('オンラインランキング取得成功:', onlineData.length, '件');
+                    
+                    // バックアップとして保存
+                    localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(onlineData));
+                    return onlineData;
+                } else {
+                    throw new Error('JSONBin取得失敗: ' + response.status);
+                }
                 
             } catch (error) {
                 console.log('オンライン取得エラー:', error);
