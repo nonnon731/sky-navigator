@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ANA Sky Navigator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #87CEEB, #E0F6FF);
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #003399;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .game-area {
+            background: white;
+            border: 3px solid #003399;
+            border-radius: 10px;
+            padding: 10px;
+            margin: 20px 0;
+            display: inline-block;
+        }
+        
+        .controls {
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .loading {
+            font-size: 1.2em;
+            color: #003399;
+            margin: 20px 0;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        .error {
+            color: red;
+            background: #ffe6e6;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✈️ ANA Sky Navigator ✈️</h1>
+        
+        <div id="loading" class="loading">
+            ゲームを読み込み中...<br>
+            <small>初回読み込みには時間がかかる場合があります</small>
+        </div>
+        
+        <div id="error" class="error" style="display: none;"></div>
+        
+        <div class="game-area" id="gameArea" style="display: none;">
+            <canvas id="canvas" width="800" height="600"></canvas>
+        </div>
+        
+        <div class="controls">
+            <h3>🎮 操作方法</h3>
+            <p><strong>左右矢印キー</strong>: 飛行機を操作</p>
+            <p><strong>スペースキー</strong>: ゲーム再開</p>
+            <p><strong>目標</strong>: 障害物を避けてアイテムを集めよう！</p>
+            
+            <div style="margin-top: 15px;">
+                <span style="color: #FFD700;">🪙 コイン: 10点</span> | 
+                <span style="color: #00FFFF;">💎 ジェム: 50点</span> | 
+                <span style="color: #FF69B4;">⭐ スター: 100点</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <script>
+        async function main() {
+            const loadingDiv = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
+            const gameArea = document.getElementById('gameArea');
+            
+            try {
+                loadingDiv.innerHTML = 'Pyodideを初期化中...';
+                
+                // Pyodideを初期化
+                let pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
+                });
+                
+                loadingDiv.innerHTML = 'Pygameをインストール中...';
+                
+                // Pygameをインストール
+                await pyodide.loadPackage("pygame");
+                
+                loadingDiv.innerHTML = 'ゲームを読み込み中...';
+                
+                // ゲームコードを読み込み
+                const response = await fetch('game.py');
+                if (!response.ok) {
+                    throw new Error(`ゲームファイルの読み込みに失敗: ${response.status}`);
+                }
+                const gameCode = await response.text();
+                
+                // Pygameの設定
+                pyodide.canvas = document.getElementById('canvas');
+                
+                loadingDiv.style.display = 'none';
+                gameArea.style.display = 'block';
+                
+                // ゲームを実行
+                await pyodide.runPythonAsync(gameCode);
+                
+            } catch (error) {
+                console.error('エラー:', error);
+                loadingDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+                errorDiv.innerHTML = `
+                    <strong>ゲームの読み込みに失敗しました</strong><br>
+                    エラー: ${error.message}<br>
+                    <small>ブラウザを更新してもう一度お試しください</small>
+                `;
+            }
+        }
+        
+        // ページ読み込み完了後に実行
+        window.addEventListener('load', main);
+    </script>
+</body>
+</html>
