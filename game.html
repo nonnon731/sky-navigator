@@ -123,7 +123,7 @@
             <h1 style="color: #003399; font-size: 3em; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Sky Navigator</h1>
             <div id="playerNameDisplay" style="margin-bottom: 30px; color: #003399; font-size: 1.2em;"></div>
             <div id="gameStartSection" style="display: none;">
-                <button class="menu-button" onclick="startGame()" style="background: #FF6B35; font-size: 24px; padding: 20px 40px;">ゲーム開始</button>
+                <button class="menu-button" onclick="showInstructions()" style="background: #FF6B35; font-size: 24px; padding: 20px 40px;">ゲーム開始</button>
                 <div style="margin-top: 20px; display: flex; gap: 20px;">
                     <button class="menu-button" onclick="showNameInput()">名前変更</button>
                     <button class="menu-button" onclick="showRanking()">ランキング</button>
@@ -135,6 +135,34 @@
                 <div style="margin-top: 20px;">
                     <button class="menu-button" onclick="showRanking()">ランキング</button>
                 </div>
+            </div>
+        </div>
+        
+        <!-- 操作説明画面 -->
+        <div id="instructionsScreen" class="overlay" style="display: none;">
+            <h2 style="color: #003399; margin-bottom: 20px;">遊び方</h2>
+            <div style="text-align: left; max-width: 600px; margin: 20px 0;">
+                <h3 style="color: #FF6B35; margin-bottom: 10px;">🎯 目標</h3>
+                <p style="margin-bottom: 15px;">障害物を避けながらアイテムを集めて、できるだけ長く生き残ろう！</p>
+                
+                <h3 style="color: #FF6B35; margin-bottom: 10px;">🎮 操作方法</h3>
+                <p style="margin-bottom: 5px;">• <strong>キーボード</strong>: 左右矢印キー、A・Dキー</p>
+                <p style="margin-bottom: 15px;">• <strong>スマートフォン</strong>: 画面をタッチして指を動かす</p>
+                
+                <h3 style="color: #FF6B35; margin-bottom: 10px;">💎 アイテム</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                    <div>🪙 コイン: 10点</div>
+                    <div>💎 ジェム: 50点</div>
+                    <div>⭐ スター: 100点</div>
+                    <div>💠 ダイヤ: 200点</div>
+                </div>
+                
+                <h3 style="color: #FF6B35; margin-bottom: 10px;">⚡ 難易度</h3>
+                <p style="margin-bottom: 15px;">時間が経つほど障害物の速度と出現頻度が上がります</p>
+            </div>
+            <div style="margin-top: 30px;">
+                <button class="menu-button" onclick="startGame()" style="background: #FF6B35; font-size: 24px; padding: 20px 40px;">ゲーム開始！</button>
+                <button class="menu-button" onclick="showTitleScreen()">戻る</button>
             </div>
         </div>
         
@@ -170,10 +198,8 @@
     </div>
     
     <div class="controls">
-        <h3>🎮 操作方法</h3>
-        <p><strong>スタートボタン または Enterキー</strong>: ゲーム開始</p>
-        <p><strong>左右矢印キー / A・Dキー / マウス・タッチ</strong>: 飛行機を操作</p>
-        <p><strong>スペースキー</strong>: ゲーム再開</p>
+        <h3>🎮 ゲームの流れ</h3>
+        <p><strong>1. 名前入力</strong> → <strong>2. 操作説明</strong> → <strong>3. ゲーム開始</strong></p>
         
         <h3>🎯 アイテム</h3>
         <div class="item-info">
@@ -299,10 +325,21 @@
         // 画面表示関数
         function showTitleScreen() {
             document.getElementById('titleScreen').style.display = 'flex';
+            document.getElementById('instructionsScreen').style.display = 'none';
             document.getElementById('nameScreen').style.display = 'none';
             document.getElementById('rankingScreen').style.display = 'none';
             document.getElementById('gameOverScreen').style.display = 'none';
             gameState = 'title';
+        }
+        
+        function showInstructions() {
+            if (!playerName) {
+                alert('まず名前を入力してください');
+                showNameInput();
+                return;
+            }
+            document.getElementById('titleScreen').style.display = 'none';
+            document.getElementById('instructionsScreen').style.display = 'flex';
         }
         
         function showNameInput() {
@@ -655,13 +692,7 @@
             if (gameState !== 'playing') return;
             
             // 飛行機を描画
-            ctx.fillStyle = '#003399';
-            ctx.beginPath();
-            ctx.moveTo(plane.x + plane.width/2, plane.y);
-            ctx.lineTo(plane.x, plane.y + plane.height);
-            ctx.lineTo(plane.x + plane.width, plane.y + plane.height);
-            ctx.closePath();
-            ctx.fill();
+            drawAirplane(plane.x, plane.y, plane.width, plane.height);
             
             // 障害物を描画
             ctx.fillStyle = '#FFFFFF';
@@ -701,6 +732,46 @@
             });
             
             drawUI();
+        }
+        
+        function drawAirplane(x, y, width, height) {
+            // 機体（胴体）
+            ctx.fillStyle = '#003399';
+            ctx.fillRect(x + width*0.3, y, width*0.4, height*0.8);
+            
+            // 機首
+            ctx.beginPath();
+            ctx.moveTo(x + width*0.5, y);
+            ctx.lineTo(x + width*0.3, y + height*0.2);
+            ctx.lineTo(x + width*0.7, y + height*0.2);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 主翼
+            ctx.fillStyle = '#0066CC';
+            ctx.fillRect(x, y + height*0.4, width, height*0.15);
+            
+            // 尾翼
+            ctx.fillStyle = '#003399';
+            ctx.fillRect(x + width*0.35, y + height*0.7, width*0.3, height*0.2);
+            
+            // 垂直尾翼
+            ctx.beginPath();
+            ctx.moveTo(x + width*0.45, y + height*0.7);
+            ctx.lineTo(x + width*0.55, y + height*0.7);
+            ctx.lineTo(x + width*0.5, y + height*0.5);
+            ctx.closePath();
+            ctx.fill();
+            
+            // コックピット
+            ctx.fillStyle = '#87CEEB';
+            ctx.beginPath();
+            ctx.arc(x + width*0.5, y + height*0.25, width*0.08, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // エンジン
+            ctx.fillStyle = '#666666';
+            ctx.fillRect(x + width*0.42, y + height*0.15, width*0.16, height*0.1);
         }
         
         function drawUI() {
