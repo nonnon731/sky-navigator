@@ -738,13 +738,9 @@
         }
         
         function gameOver() {
-            gameState = 'gameOver';
+            if (gameState !== 'playing') return; // 重複実行を防止
             
-            // ゲーム終了時の処理
-            if (playerName) {
-                // オンラインランキングに保存を試行
-                saveOnlineRanking(playerName, score, gameTime);
-            }
+            gameState = 'gameOver';
             
             // 結果表示の更新
             const minutes = Math.floor(gameTime / 60);
@@ -759,10 +755,13 @@
                 nameResult.textContent = '';
             }
             
-            // ゲームオーバー画面を表示
-            setTimeout(() => {
-                document.getElementById('gameOverScreen').style.display = 'flex';
-            }, 100);
+            // ゲームオーバー画面を即座に表示
+            document.getElementById('gameOverScreen').style.display = 'flex';
+            
+            // ランキング保存（非同期）
+            if (playerName) {
+                saveOnlineRanking(playerName, score, gameTime);
+            }
         }
         
         // アイテム描画関数
@@ -888,8 +887,6 @@
                 ctx.textAlign = 'center';
                 ctx.fillText(itemData.points.toString(), centerX, centerY + size + 15);
             });
-            
-            drawUI();
         }
         
         function drawAirplane(x, y, width, height) {
@@ -1018,8 +1015,11 @@
         }
         
         function gameLoop() {
-            updateGame();
+            if (gameState === 'playing') {
+                updateGame();
+            }
             drawGame();
+            drawUI();
             requestAnimationFrame(gameLoop);
         }
         
