@@ -698,10 +698,34 @@
         }
         
         function showNameInput() {
-            document.getElementById('titleScreen').style.display = 'none';
-            document.getElementById('nameScreen').style.display = 'flex';
-            document.getElementById('nameInput').value = playerName;
-            document.getElementById('nameInput').focus();
+            try {
+                console.log('名前入力画面表示開始...');
+                
+                const titleScreen = document.getElementById('titleScreen');
+                const nameScreen = document.getElementById('nameScreen');
+                const nameInput = document.getElementById('nameInput');
+                
+                console.log('要素確認:', {
+                    titleScreen: !!titleScreen,
+                    nameScreen: !!nameScreen,
+                    nameInput: !!nameInput
+                });
+                
+                if (!titleScreen || !nameScreen || !nameInput) {
+                    throw new Error('必要な要素が見つかりません');
+                }
+                
+                titleScreen.style.display = 'none';
+                nameScreen.style.display = 'flex';
+                nameInput.value = playerName;
+                nameInput.focus();
+                
+                console.log('名前入力画面表示成功');
+                
+            } catch (error) {
+                console.error('名前入力画面表示エラー:', error);
+                alert('名前入力画面の表示でエラーが発生しました: ' + error.message);
+            }
         }
         
         async function showRanking() {
