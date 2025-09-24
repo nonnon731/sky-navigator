@@ -498,7 +498,7 @@
                 y: -50,
                 width: 60,
                 height: 40,
-                speed: Math.max(4 + Math.floor(gameTime / 15), 3) // 初期スピードを上げる
+                speed: Math.max(3 + Math.floor(gameTime / 20), 2) // スピードを少し下げる
             });
         }
         
@@ -521,7 +521,7 @@
                 width: itemData.size * 2,
                 height: itemData.size * 2,
                 type: type,
-                speed: Math.max(3.5 + Math.floor(gameTime / 25), 2.5) // 初期スピードを上げる
+                speed: Math.max(2.5 + Math.floor(gameTime / 30), 1.5) // スピードを少し下げる
             });
         }
         
