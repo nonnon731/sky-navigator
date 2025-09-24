@@ -36,12 +36,27 @@
             background: white;
             padding: 10px;
             position: relative;
+            max-width: 100%;
+            overflow: hidden;
         }
         
         canvas {
             display: block;
             background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
             touch-action: none;
+            max-width: 100%;
+            height: auto;
+        }
+        
+        @media (max-width: 850px) {
+            canvas {
+                width: 100%;
+                height: auto;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
         }
         
         .controls {
@@ -81,6 +96,31 @@
             justify-content: center;
             align-items: center;
             border-radius: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        
+        @media (max-width: 600px) {
+            .overlay {
+                padding: 5px;
+            }
+            
+            .overlay h2 {
+                font-size: 1.5em;
+                margin-bottom: 15px;
+            }
+            
+            .overlay h3 {
+                font-size: 1.2em;
+                margin-bottom: 8px;
+            }
+            
+            .menu-button {
+                padding: 12px 20px;
+                font-size: 16px;
+                margin: 8px;
+            }
         }
         
         .menu-button {
@@ -140,16 +180,16 @@
         <!-- 操作説明画面 -->
         <div id="instructionsScreen" class="overlay" style="display: none;">
             <h2 style="color: #003399; margin-bottom: 20px;">遊び方</h2>
-            <div style="text-align: left; max-width: 600px; margin: 20px 0;">
+            <div style="text-align: left; max-width: 90%; width: 500px; margin: 20px auto; padding: 0 10px;">
                 <h3 style="color: #FF6B35; margin-bottom: 10px;">🎯 目標</h3>
-                <p style="margin-bottom: 15px;">障害物を避けながらアイテムを集めて、できるだけ長く生き残ろう！</p>
+                <p style="margin-bottom: 15px; font-size: 14px;">雲を避けながらアイテムを集めて、できるだけ長く生き残ろう！</p>
                 
                 <h3 style="color: #FF6B35; margin-bottom: 10px;">🎮 操作方法</h3>
-                <p style="margin-bottom: 5px;">• <strong>キーボード</strong>: 左右矢印キー、A・Dキー</p>
-                <p style="margin-bottom: 15px;">• <strong>スマートフォン</strong>: 画面をタッチして指を動かす</p>
+                <p style="margin-bottom: 5px; font-size: 14px;">• <strong>キーボード</strong>: 左右矢印キー、A・Dキー</p>
+                <p style="margin-bottom: 15px; font-size: 14px;">• <strong>スマートフォン</strong>: 画面をタッチして指を動かす</p>
                 
                 <h3 style="color: #FF6B35; margin-bottom: 10px;">💎 アイテム</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; font-size: 14px;">
                     <div>🪙 コイン: 10点</div>
                     <div>💎 ジェム: 50点</div>
                     <div>⭐ スター: 100点</div>
@@ -157,7 +197,7 @@
                 </div>
                 
                 <h3 style="color: #FF6B35; margin-bottom: 10px;">⚡ 難易度</h3>
-                <p style="margin-bottom: 15px;">時間が経つほど障害物の速度と出現頻度が上がります</p>
+                <p style="margin-bottom: 15px; font-size: 14px;">時間が経つほど雲の速度と出現頻度が上がります</p>
             </div>
             <div style="margin-top: 30px;">
                 <button class="menu-button" onclick="startGame()" style="background: #FF6B35; font-size: 24px; padding: 20px 40px;">ゲーム開始！</button>
