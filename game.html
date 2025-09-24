@@ -203,7 +203,7 @@
         // ゲーム変数
         let gameState = 'title';
         let playerName = '';
-        let plane = { x: 400, y: 500, width: 30, height: 40, speed: 8 };
+        let plane = { x: 400, y: 500, width: 60, height: 80, speed: 8 };
         let obstacles = [];
         let items = [];
         let score = 0;
@@ -389,6 +389,8 @@
             gameState = 'playing';
             plane.x = 400;
             plane.y = 500;
+            plane.width = 60;
+            plane.height = 80;
             obstacles = [];
             items = [];
             score = 0;
@@ -456,7 +458,7 @@
                 y: -50,
                 width: 60,
                 height: 40,
-                speed: Math.max(2.5 + Math.floor(gameTime / 15), 1.5) // 少し速く
+                speed: Math.max(4 + Math.floor(gameTime / 15), 3) // 初期スピードを上げる
             });
         }
         
@@ -479,7 +481,7 @@
                 width: itemData.size * 2,
                 height: itemData.size * 2,
                 type: type,
-                speed: Math.max(1.8 + Math.floor(gameTime / 25), 1) // 少し速く
+                speed: Math.max(3.5 + Math.floor(gameTime / 25), 2.5) // 初期スピードを上げる
             });
         }
         
