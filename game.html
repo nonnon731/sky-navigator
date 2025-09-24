@@ -711,13 +711,17 @@
         }
         
         function checkCollisions() {
+            if (gameState !== 'playing') return;
+            
             // 障害物との衝突
             obstacles.forEach(obs => {
                 if (plane.x < obs.x + obs.width &&
                     plane.x + plane.width > obs.x &&
                     plane.y < obs.y + obs.height &&
                     plane.y + plane.height > obs.y) {
-                    gameOver();
+                    if (gameState === 'playing') {
+                        gameOver();
+                    }
                 }
             });
             
@@ -736,11 +740,13 @@
         function gameOver() {
             gameState = 'gameOver';
             
+            // ゲーム終了時の処理
             if (playerName) {
                 // オンラインランキングに保存を試行
                 saveOnlineRanking(playerName, score, gameTime);
             }
             
+            // 結果表示の更新
             const minutes = Math.floor(gameTime / 60);
             const seconds = gameTime % 60;
             document.getElementById('finalTime').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
@@ -753,7 +759,10 @@
                 nameResult.textContent = '';
             }
             
-            document.getElementById('gameOverScreen').style.display = 'flex';
+            // ゲームオーバー画面を表示
+            setTimeout(() => {
+                document.getElementById('gameOverScreen').style.display = 'flex';
+            }, 100);
         }
         
         // アイテム描画関数
