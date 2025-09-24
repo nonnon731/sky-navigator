@@ -14,6 +14,7 @@
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            user-select: none;
         }
         
         .header {
@@ -40,6 +41,7 @@
         canvas {
             display: block;
             background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            touch-action: none;
         }
         
         .controls {
@@ -120,7 +122,7 @@
         <div id="titleScreen" class="overlay">
             <h1 style="color: #003399; font-size: 3em; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Sky Navigator</h1>
             <div id="playerNameDisplay" style="margin-bottom: 30px; color: #003399; font-size: 1.2em;"></div>
-            <p style="color: #666; font-size: 1.1em; margin-bottom: 40px;">Enterキーを押してください</p>
+            <p style="color: #666; font-size: 1.1em; margin-bottom: 40px;">Enterキーまたはタップしてください</p>
             <div style="display: flex; gap: 20px;">
                 <button class="menu-button" onclick="showNameInput()">名前設定 (N)</button>
                 <button class="menu-button" onclick="showRanking()">ランキング (R)</button>
@@ -159,8 +161,8 @@
     
     <div class="controls">
         <h3>🎮 操作方法</h3>
-        <p><strong>Enterキー</strong>: ゲーム開始</p>
-        <p><strong>左右矢印キー または A/Dキー</strong>: 飛行機を操作</p>
+        <p><strong>Enterキー または タップ</strong>: ゲーム開始</p>
+        <p><strong>左右矢印キー / A・Dキー / マウス・タッチ</strong>: 飛行機を操作</p>
         <p><strong>スペースキー</strong>: ゲーム再開</p>
         
         <h3>🎯 アイテム</h3>
@@ -179,7 +181,7 @@
         const ctx = canvas.getContext('2d');
         
         // ゲーム変数
-        let gameState = 'title'; // 'title', 'playing', 'gameOver'
+        let gameState = 'title';
         let playerName = '';
         let plane = { x: 400, y: 500, width: 30, height: 40, speed: 8 };
         let obstacles = [];
@@ -191,40 +193,86 @@
         let lastItemTime = 0;
         let ranking = [];
         
+        // タッチ・マウス操作
+        let mouseX = 0;
+        let isMouseDown = false;
+        
         // キー入力
         const keys = {};
         
         // アイテムタイプ
         const itemTypes = {
-            coin: { points: 10, color: '#FFD700', size: 12 },
-            gem: { points: 50, color: '#00FFFF', size: 15 },
-            star: { points: 100, color: '#FF69B4', size: 18 },
-            diamond: { points: 200, color: '#FFFFFF', size: 20 }
+            coin: { points: 10, color: '#FFD700', size: 15 },
+            gem: { points: 50, color: '#00FFFF', size: 18 },
+            star: { points: 100, color: '#FF69B4', size: 20 },
+            diamond: { points: 200, color: '#FFFFFF', size: 22 }
         };
         
-        // ローカルストレージからランキング読み込み
+        // タッチ・マウスイベント
+        canvas.addEventListener('mousedown', (e) => {
+            if (gameState === 'title') {
+                startGame();
+                return;
+            }
+            isMouseDown = true;
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (isMouseDown && gameState === 'playing') {
+                const rect = canvas.getBoundingClientRect();
+                mouseX = e.clientX - rect.left;
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+        
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameState === 'title') {
+                startGame();
+                return;
+            }
+            isMouseDown = true;
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.touches[0].clientX - rect.left;
+        });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (isMouseDown && gameState === 'playing') {
+                const rect = canvas.getBoundingClientRect();
+                mouseX = e.touches[0].clientX - rect.left;
+            }
+        });
+        
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            isMouseDown = false;
+        });
+        
+        // ローカルストレージ関数
         function loadRanking() {
             const saved = localStorage.getItem('skyNavigatorRanking');
             ranking = saved ? JSON.parse(saved) : [];
         }
         
-        // ランキング保存
         function saveRanking() {
             localStorage.setItem('skyNavigatorRanking', JSON.stringify(ranking));
         }
         
-        // プレイヤー名読み込み
         function loadPlayerName() {
             playerName = localStorage.getItem('skyNavigatorPlayerName') || '';
             updatePlayerNameDisplay();
         }
         
-        // プレイヤー名保存
         function savePlayerName() {
             localStorage.setItem('skyNavigatorPlayerName', playerName);
         }
         
-        // プレイヤー名表示更新
         function updatePlayerNameDisplay() {
             const display = document.getElementById('playerNameDisplay');
             if (playerName) {
@@ -295,6 +343,7 @@
             startTime = Date.now();
             lastObstacleTime = 0;
             lastItemTime = 0;
+            isMouseDown = false;
             document.getElementById('titleScreen').style.display = 'none';
         }
         
@@ -303,7 +352,7 @@
             startGame();
         }
         
-        // イベントリスナー
+        // キーボードイベント
         document.addEventListener('keydown', (e) => {
             keys[e.code] = true;
             
@@ -344,7 +393,6 @@
             keys[e.code] = false;
         });
         
-        // 名前入力でEnterキー
         document.getElementById('nameInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 saveName();
@@ -357,7 +405,7 @@
                 y: -50,
                 width: 60,
                 height: 40,
-                speed: 3 + Math.floor(gameTime / 10)
+                speed: Math.max(1.5 + Math.floor(gameTime / 20), 1) // より遅いスタート
             });
         }
         
@@ -380,7 +428,7 @@
                 width: itemData.size * 2,
                 height: itemData.size * 2,
                 type: type,
-                speed: 2 + Math.floor(gameTime / 15)
+                speed: Math.max(1 + Math.floor(gameTime / 30), 0.5) // より遅いスタート
             });
         }
         
@@ -389,7 +437,7 @@
             
             gameTime = Math.floor((Date.now() - startTime) / 1000);
             
-            // プレイヤー移動
+            // プレイヤー移動（キーボード）
             if ((keys['ArrowLeft'] || keys['KeyA']) && plane.x > 0) {
                 plane.x -= plane.speed;
             }
@@ -397,15 +445,25 @@
                 plane.x += plane.speed;
             }
             
-            // 障害物生成
-            const obstacleFreq = Math.max(1000 - gameTime * 50, 300);
+            // プレイヤー移動（マウス・タッチ）
+            if (isMouseDown) {
+                const targetX = mouseX - plane.width / 2;
+                const diff = targetX - plane.x;
+                if (Math.abs(diff) > 2) {
+                    plane.x += Math.sign(diff) * Math.min(Math.abs(diff) * 0.1, plane.speed);
+                }
+                plane.x = Math.max(0, Math.min(canvas.width - plane.width, plane.x));
+            }
+            
+            // 障害物生成（より遅い頻度）
+            const obstacleFreq = Math.max(2000 - gameTime * 30, 800);
             if (Date.now() - lastObstacleTime > obstacleFreq) {
                 createObstacle();
                 lastObstacleTime = Date.now();
             }
             
             // アイテム生成
-            const itemFreq = Math.max(2000 - gameTime * 30, 800);
+            const itemFreq = Math.max(3000 - gameTime * 20, 1500);
             if (Date.now() - lastItemTime > itemFreq) {
                 createItem();
                 lastItemTime = Date.now();
@@ -428,7 +486,6 @@
                 }
             });
             
-            // 衝突判定
             checkCollisions();
         }
         
@@ -458,7 +515,6 @@
         function gameOver() {
             gameState = 'gameOver';
             
-            // ランキングに追加
             if (playerName) {
                 ranking.push({
                     name: playerName,
@@ -467,7 +523,7 @@
                     date: new Date().toLocaleDateString()
                 });
                 ranking.sort((a, b) => b.score - a.score);
-                ranking = ranking.slice(0, 10); // トップ10のみ
+                ranking = ranking.slice(0, 10);
                 saveRanking();
             }
             
@@ -486,8 +542,89 @@
             document.getElementById('gameOverScreen').style.display = 'flex';
         }
         
+        // アイテム描画関数
+        function drawCoin(x, y, size) {
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#FFA500';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // コインの模様
+            ctx.fillStyle = '#FFA500';
+            ctx.font = `${size}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText('¥', x, y + size/3);
+        }
+        
+        function drawGem(x, y, size) {
+            ctx.fillStyle = '#00FFFF';
+            ctx.beginPath();
+            ctx.moveTo(x, y - size);
+            ctx.lineTo(x - size*0.6, y - size*0.3);
+            ctx.lineTo(x - size*0.8, y + size*0.5);
+            ctx.lineTo(x, y + size);
+            ctx.lineTo(x + size*0.8, y + size*0.5);
+            ctx.lineTo(x + size*0.6, y - size*0.3);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.strokeStyle = '#0088CC';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+        
+        function drawStar(x, y, size) {
+            ctx.fillStyle = '#FF69B4';
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 4 * Math.PI) / 5 - Math.PI / 2;
+                const x1 = x + Math.cos(angle) * size;
+                const y1 = y + Math.sin(angle) * size;
+                if (i === 0) ctx.moveTo(x1, y1);
+                else ctx.lineTo(x1, y1);
+                
+                const angle2 = ((i + 0.5) * 4 * Math.PI) / 5 - Math.PI / 2;
+                const x2 = x + Math.cos(angle2) * size * 0.5;
+                const y2 = y + Math.sin(angle2) * size * 0.5;
+                ctx.lineTo(x2, y2);
+            }
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.strokeStyle = '#FF1493';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+        
+        function drawDiamond(x, y, size) {
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.moveTo(x, y - size);
+            ctx.lineTo(x - size*0.5, y - size*0.3);
+            ctx.lineTo(x - size*0.7, y + size*0.7);
+            ctx.lineTo(x, y + size);
+            ctx.lineTo(x + size*0.7, y + size*0.7);
+            ctx.lineTo(x + size*0.5, y - size*0.3);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.strokeStyle = '#CCCCCC';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // ダイヤモンドの輝き
+            ctx.strokeStyle = '#DDDDDD';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x - size*0.3, y - size*0.1);
+            ctx.lineTo(x + size*0.3, y - size*0.1);
+            ctx.stroke();
+        }
+        
         function drawGame() {
-            // 背景をクリア
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             if (gameState !== 'playing') return;
@@ -512,41 +649,50 @@
             // アイテムを描画
             items.forEach(item => {
                 const itemData = itemTypes[item.type];
-                ctx.fillStyle = itemData.color;
-                ctx.beginPath();
-                ctx.arc(item.x + item.width/2, item.y + item.height/2, itemData.size, 0, Math.PI * 2);
-                ctx.fill();
+                const centerX = item.x + item.width/2;
+                const centerY = item.y + item.height/2;
+                const size = itemData.size;
+                
+                switch(item.type) {
+                    case 'coin':
+                        drawCoin(centerX, centerY, size);
+                        break;
+                    case 'gem':
+                        drawGem(centerX, centerY, size);
+                        break;
+                    case 'star':
+                        drawStar(centerX, centerY, size);
+                        break;
+                    case 'diamond':
+                        drawDiamond(centerX, centerY, size);
+                        break;
+                }
                 
                 // ポイント表示
                 ctx.fillStyle = '#000000';
                 ctx.font = '12px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText(itemData.points.toString(), item.x + item.width/2, item.y + item.height/2 + 4);
+                ctx.fillText(itemData.points.toString(), centerX, centerY + size + 15);
             });
             
-            // UI描画
             drawUI();
         }
         
         function drawUI() {
             if (gameState !== 'playing') return;
             
-            // スコア
             ctx.fillStyle = '#003399';
             ctx.font = 'bold 24px Arial';
             ctx.textAlign = 'left';
             ctx.fillText(`得点: ${score}`, 20, 40);
             
-            // 時間
             const minutes = Math.floor(gameTime / 60);
             const seconds = gameTime % 60;
             ctx.fillText(`時間: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`, 20, 70);
             
-            // 難易度
             const level = Math.min(Math.floor(gameTime / 15) + 1, 10);
             ctx.fillText(`難易度: Lv.${level}`, 20, 100);
             
-            // プレイヤー名
             if (playerName) {
                 ctx.font = '16px Arial';
                 ctx.fillText(`パイロット: ${playerName}`, 20, 130);
