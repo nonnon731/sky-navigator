@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANA SKY NAVIGATOR - Web版</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #87CEEB, #E0F6FF);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            color: #003399;
+            font-size: 2.5em;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+        
+        .game-container {
+            border: 4px solid #003399;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            background: white;
+            padding: 10px;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .controls h3 {
+            color: #003399;
+            margin-top: 0;
+        }
+        
+        .controls p {
+            margin: 5px 0;
+            color: #333;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #003399;
+            font-size: 1.2em;
+            margin: 20px 0;
+        }
+        
+        .item-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        
+        .item {
+            background: rgba(255,255,255,0.8);
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 2px;
+            font-size: 0.9em;
+        }
+        
+        .coin { border-left: 4px solid #FFD700; }
+        .gem { border-left: 4px solid #00FFFF; }
+        .star { border-left: 4px solid #FF69B4; }
+        .diamond { border-left: 4px solid #FFFFFF; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>✈️ ANA SKY NAVIGATOR ✈️</h1>
+        <p>ブラウザで遊べる飛行機サバイバルゲーム</p>
+    </div>
+    
+    <div class="loading" id="loading">
+        ゲームを読み込み中...
+    </div>
+    
+    <div class="game-container" id="gameContainer" style="display: none;">
+        <canvas id="canvas" width="800" height="600"></canvas>
+    </div>
+    
+    <div class="controls">
+        <h3>🎮 操作方法</h3>
+        <p><strong>左右矢印キー</strong>: 飛行機を操作</p>
+        <p><strong>スペースキー</strong>: ゲーム開始/再開</p>
+        <p><strong>N</strong>: 名前設定 | <strong>R</strong>: ランキング</p>
+        
+        <h3>🎯 アイテム</h3>
+        <div class="item-info">
+            <div class="item coin">🪙 コイン: 10点</div>
+            <div class="item gem">💎 ジェム: 50点</div>
+            <div class="item star">⭐ スター: 100点</div>
+            <div class="item diamond">💠 ダイヤ: 200点</div>
+        </div>
+        
+        <p><strong>目標</strong>: 障害物を避けながらアイテムを集めて、できるだけ長く生き残ろう！</p>
+        <p>時間が経つほど難易度が上がります。トップ10ランキングを目指そう！</p>
+    </div>
+
+    <script type="application/javascript" src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+    <script type="application/javascript">
+        async function main() {
+            let pyodide = await loadPyodide();
+            
+            // 必要なパッケージをインストール
+            await pyodide.loadPackage(["pygame"]);
+            
+            // ゲームファイルを読み込み
+            const response = await fetch('airplane_game_web.py');
+            const gameCode = await response.text();
+            
+            // ローディング表示を隠してゲームを表示
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            
+            // Pygameの画面をHTMLのcanvasに設定
+            pyodide.canvas = document.getElementById('canvas');
+            
+            // ゲームを実行
+            await pyodide.runPythonAsync(gameCode);
+        }
+        
+        // エラーハンドリング
+        main().catch(error => {
+            console.error('ゲームの読み込みに失敗しました:', error);
+            document.getElementById('loading').innerHTML = 
+                '❌ ゲームの読み込みに失敗しました。<br>ブラウザを更新してもう一度お試しください。';
+        });
+    </script>
+</body>
+</html>
