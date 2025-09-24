@@ -286,23 +286,28 @@
                     }
                 });
                 
+                console.log('接続テスト応答ステータス:', response.status);
+                
                 if (response.ok) {
                     const data = await response.json();
                     console.log('✅ JSONBin.io接続成功!');
                     console.log('現在のデータ件数:', (data.record || []).length);
                     return true;
                 } else {
+                    const errorText = await response.text();
                     console.log('❌ JSONBin.io接続失敗:', response.status, response.statusText);
+                    console.log('エラー詳細:', errorText);
                     return false;
                 }
                 
             } catch (error) {
                 console.log('❌ JSONBin.io接続エラー:', error.message);
+                console.log('エラー詳細:', error);
                 return false;
             }
         }
         
-        // JSONBin.io を使用した真のオンライン同期
+        // JSONBin.io を使用した真のオンライン同期（修正版）
         const JSONBIN_BIN_ID = '676a1e2fad19ca34f8c8f8e5';
         const JSONBIN_API_KEY = '$2a$10$VQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGz';
         const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
@@ -330,30 +335,37 @@
                 currentRanking.sort((a, b) => b.score - a.score);
                 const topRankings = currentRanking.slice(0, 30);
                 
-                // JSONBin.ioに保存
+                // JSONBin.ioに保存（修正版）
                 const response = await fetch(JSONBIN_URL, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Master-Key': JSONBIN_API_KEY
+                        'X-Master-Key': JSONBIN_API_KEY,
+                        'X-Bin-Meta': 'false'
                     },
                     body: JSON.stringify(topRankings)
                 });
                 
+                console.log('JSONBin応答ステータス:', response.status);
+                
                 if (response.ok) {
+                    const result = await response.json();
                     console.log('オンラインランキング保存成功:', topRankings.length, '件');
+                    console.log('JSONBin応答:', result);
                     
                     // ローカルにもバックアップ
                     localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(topRankings));
                 } else {
-                    throw new Error('JSONBin保存失敗');
+                    const errorText = await response.text();
+                    console.log('JSONBin保存失敗詳細:', response.status, errorText);
+                    throw new Error(`JSONBin保存失敗: ${response.status} - ${errorText}`);
                 }
                 
                 // 従来のローカル保存も実行
                 saveLocalRanking(playerName, score, time);
                 
             } catch (error) {
-                console.log('オンライン保存エラー:', error);
+                console.log('オンライン保存エラー詳細:', error);
                 
                 // エラー時はローカル保存のみ
                 saveLocalRanking(playerName, score, time);
@@ -370,6 +382,7 @@
                     });
                     backup.sort((a, b) => b.score - a.score);
                     localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(backup.slice(0, 30)));
+                    console.log('ローカルバックアップに保存しました');
                 } catch (e) {
                     console.log('バックアップ保存エラー:', e);
                 }
