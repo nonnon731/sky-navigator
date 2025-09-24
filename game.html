@@ -685,12 +685,9 @@
             // 飛行機を描画
             drawAirplane(plane.x, plane.y, plane.width, plane.height);
             
-            // 障害物を描画
-            ctx.fillStyle = '#FFFFFF';
+            // 障害物（雲）を描画
             obstacles.forEach(obs => {
-                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-                ctx.strokeStyle = '#CCCCCC';
-                ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+                drawCloud(obs.x, obs.y, obs.width, obs.height);
             });
             
             // アイテムを描画
@@ -783,6 +780,43 @@
             ctx.moveTo(x + width*0.5, y + height*0.05);
             ctx.lineTo(x + width*0.5, y + height*0.33);
             ctx.stroke();
+        }
+        
+        function drawCloud(x, y, width, height) {
+            ctx.fillStyle = '#FFFFFF';
+            
+            // 雲の基本形（複数の円で構成）
+            const radius = height * 0.3;
+            
+            // 左の円
+            ctx.beginPath();
+            ctx.arc(x + radius, y + height * 0.6, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 中央の大きな円
+            ctx.beginPath();
+            ctx.arc(x + width * 0.5, y + height * 0.5, radius * 1.2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 右の円
+            ctx.beginPath();
+            ctx.arc(x + width - radius, y + height * 0.6, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 上部の小さな円
+            ctx.beginPath();
+            ctx.arc(x + width * 0.3, y + height * 0.3, radius * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(x + width * 0.7, y + height * 0.3, radius * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 影の効果
+            ctx.fillStyle = '#E6E6E6';
+            ctx.beginPath();
+            ctx.arc(x + width * 0.5, y + height * 0.7, radius * 0.6, 0, Math.PI * 2);
+            ctx.fill();
         }
         
         function drawUI() {
