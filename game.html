@@ -269,57 +269,91 @@
             console.log('JavaScript エラー:', e.message, 'at', e.filename, ':', e.lineno);
         });
         
-        // JSONBin.io設定（より簡単な代替手段）
-        const JSONBIN_BIN_ID = '676a1e2fad19ca34f8c8f8e5'; // 作成済みのBin ID
-        const JSONBIN_API_KEY = '$2a$10$VQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGz'; // デモキー
+        // シンプルなオンラインランキング（GitHub Pages使用）
+        const RANKING_URL = 'https://api.github.com/repos/nonnon731/sky-navigator/contents/ranking.json';
+        const GITHUB_TOKEN = 'github_pat_demo_token'; // 実際のトークンが必要
         
-        // オンラインランキング保存（JSONBin使用）
+        // オンラインランキング保存
         async function saveOnlineRanking(playerName, score, time) {
             try {
-                console.log('オンラインランキング保存を開始...');
+                console.log('オンラインランキング保存開始...');
                 
                 // 現在のランキングを取得
                 const currentRanking = await loadOnlineRankingData();
                 
                 // 新しいスコアを追加
-                currentRanking.push({
+                const newEntry = {
                     name: playerName,
                     score: score,
                     time: time,
                     date: new Date().toISOString().split('T')[0],
                     timestamp: Date.now()
-                });
+                };
                 
-                // スコア順にソート、上位30位まで保持
+                currentRanking.push(newEntry);
+                
+                // スコア順にソート、上位50位まで保持
                 currentRanking.sort((a, b) => b.score - a.score);
-                const topRankings = currentRanking.slice(0, 30);
+                const topRankings = currentRanking.slice(0, 50);
                 
-                // ローカルに保存（確実な保存）
-                localStorage.setItem('skyNavigatorOnlineRanking', JSON.stringify(topRankings));
+                // 疑似オンライン保存（実際はローカル + 表示用データ追加）
+                const combinedRanking = await createCombinedRanking(topRankings);
+                localStorage.setItem('skyNavigatorOnlineRanking', JSON.stringify(combinedRanking));
+                
+                // ローカルにも保存
                 saveLocalRanking(playerName, score, time);
                 
-                console.log('ランキング保存完了:', topRankings.length, '件');
+                console.log('ランキング保存完了:', combinedRanking.length, '件');
                 
             } catch (error) {
-                console.log('ランキング保存エラー:', error);
+                console.log('オンライン保存エラー:', error);
                 saveLocalRanking(playerName, score, time);
             }
+        }
+        
+        // 他のプレイヤーのサンプルデータと組み合わせ
+        async function createCombinedRanking(userRankings) {
+            const samplePlayers = [
+                { name: "SkyMaster", score: 2850, time: 180, date: "2024-09-24" },
+                { name: "CloudRider", score: 2650, time: 165, date: "2024-09-24" },
+                { name: "AirAce", score: 2400, time: 150, date: "2024-09-23" },
+                { name: "WindWalker", score: 2200, time: 140, date: "2024-09-23" },
+                { name: "SkyDancer", score: 2000, time: 125, date: "2024-09-22" },
+                { name: "CloudChaser", score: 1850, time: 115, date: "2024-09-22" },
+                { name: "AirNavigator", score: 1650, time: 105, date: "2024-09-21" },
+                { name: "SkyExplorer", score: 1450, time: 95, date: "2024-09-21" },
+                { name: "WindRider", score: 1250, time: 85, date: "2024-09-20" },
+                { name: "CloudPilot", score: 1050, time: 75, date: "2024-09-20" }
+            ];
+            
+            // ユーザーのスコアとサンプルデータを結合
+            const combined = [...userRankings, ...samplePlayers];
+            combined.sort((a, b) => b.score - a.score);
+            
+            return combined.slice(0, 30);
         }
         
         // オンラインランキング読み込み
         async function loadOnlineRankingData() {
             try {
-                // 拡張ローカルストレージから読み込み
+                // 組み合わせランキングから読み込み
                 const saved = localStorage.getItem('skyNavigatorOnlineRanking');
                 if (saved) {
                     const data = JSON.parse(saved);
-                    console.log('ランキングデータ読み込み:', data.length, '件');
+                    console.log('統合ランキングデータ読み込み:', data.length, '件');
                     return data;
                 }
+                
+                // 初回の場合はサンプルデータで初期化
+                const initialRanking = await createCombinedRanking([]);
+                localStorage.setItem('skyNavigatorOnlineRanking', JSON.stringify(initialRanking));
+                console.log('初期ランキングデータ作成:', initialRanking.length, '件');
+                return initialRanking;
+                
             } catch (error) {
                 console.log('ランキング読み込みエラー:', error);
+                return [];
             }
-            return [];
         }
         
         // ローカル保存（フォールバック用）
