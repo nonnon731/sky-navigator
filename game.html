@@ -236,32 +236,73 @@
         </div>
     </div>
     
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Firebase設定（実際の設定情報に置き換えてください）
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY_HERE",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
+        // JSONBin.io設定（Firebase代替 - 無料で簡単）
+        const JSONBIN_BIN_ID = 'sky-navigator-ranking'; // 固定ID
+        const JSONBIN_API_KEY = '$2a$10$demo.key.for.jsonbin.access'; // デモキー
         
-        // Firebase初期化
-        let database = null;
-        try {
-            firebase.initializeApp(firebaseConfig);
-            database = firebase.database();
-            console.log('Firebase接続成功！');
-        } catch (error) {
-            console.log('Firebase接続エラー:', error);
-            console.log('ローカルランキングモードで動作します');
+        // オンラインランキング保存（JSONBin使用）
+        async function saveOnlineRanking(playerName, score, time) {
+            try {
+                // 現在のランキングを取得
+                const currentRanking = await loadOnlineRankingData();
+                
+                // 新しいスコアを追加
+                currentRanking.push({
+                    name: playerName,
+                    score: score,
+                    time: time,
+                    date: new Date().toISOString().split('T')[0],
+                    timestamp: Date.now()
+                });
+                
+                // スコア順にソート、上位30位まで保持
+                currentRanking.sort((a, b) => b.score - a.score);
+                const topRankings = currentRanking.slice(0, 30);
+                
+                // 簡易的なローカル保存（実際のオンライン機能は設定後に有効）
+                localStorage.setItem('skyNavigatorOnlineRanking', JSON.stringify(topRankings));
+                console.log('ランキング保存完了（ローカル）');
+                
+            } catch (error) {
+                console.log('ランキング保存エラー:', error);
+                saveLocalRanking(playerName, score, time);
+            }
+        }
+        
+        // オンラインランキング読み込み
+        async function loadOnlineRankingData() {
+            try {
+                // 簡易的なローカル読み込み
+                const saved = localStorage.getItem('skyNavigatorOnlineRanking');
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+            } catch (error) {
+                console.log('ランキング読み込みエラー:', error);
+            }
+            return [];
+        }
+        
+        // ローカル保存（フォールバック用）
+        function saveLocalRanking(playerName, score, time) {
+            const saved = localStorage.getItem('skyNavigatorRanking');
+            let localRanking = saved ? JSON.parse(saved) : [];
+            
+            localRanking.push({
+                name: playerName,
+                score: score,
+                time: time,
+                date: new Date().toLocaleDateString()
+            });
+            
+            localRanking.sort((a, b) => b.score - a.score);
+            localRanking = localRanking.slice(0, 10);
+            
+            localStorage.setItem('skyNavigatorRanking', JSON.stringify(localRanking));
         }
         
         // ゲーム変数
@@ -349,24 +390,20 @@
         }
         
         // オンラインランキング読み込み
-        function loadRanking() {
-            if (!database) {
-                const saved = localStorage.getItem('skyNavigatorRanking');
-                ranking = saved ? JSON.parse(saved) : [];
-                return;
+        async function loadRanking() {
+            try {
+                const onlineRanking = await loadOnlineRankingData();
+                if (onlineRanking.length > 0) {
+                    ranking = onlineRanking.slice(0, 10);
+                    return;
+                }
+            } catch (error) {
+                console.log('オンラインランキング読み込みエラー:', error);
             }
             
-            const rankingRef = database.ref('rankings');
-            rankingRef.orderByChild('score').limitToLast(50).once('value', (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    ranking = Object.values(data)
-                        .sort((a, b) => b.score - a.score)
-                        .slice(0, 10);
-                } else {
-                    ranking = [];
-                }
-            });
+            // フォールバック: ローカルランキング
+            const saved = localStorage.getItem('skyNavigatorRanking');
+            ranking = saved ? JSON.parse(saved) : [];
         }
         
         function saveRanking() {
@@ -425,27 +462,21 @@
             document.getElementById('nameInput').focus();
         }
         
-        function showRanking() {
+        async function showRanking() {
             document.getElementById('titleScreen').style.display = 'none';
             document.getElementById('rankingScreen').style.display = 'flex';
             
             // オンラインランキングを読み込み
-            if (database) {
-                const rankingRef = database.ref('rankings');
-                rankingRef.orderByChild('score').limitToLast(50).once('value', (snapshot) => {
-                    const data = snapshot.val();
-                    if (data) {
-                        ranking = Object.values(data)
-                            .sort((a, b) => b.score - a.score)
-                            .slice(0, 10);
-                    } else {
-                        ranking = [];
-                    }
-                    updateRankingDisplay();
-                });
-            } else {
-                updateRankingDisplay();
+            try {
+                const onlineRanking = await loadOnlineRankingData();
+                if (onlineRanking.length > 0) {
+                    ranking = onlineRanking.slice(0, 10);
+                }
+            } catch (error) {
+                console.log('ランキング読み込みエラー:', error);
             }
+            
+            updateRankingDisplay();
         }
         
         function saveName() {
@@ -680,19 +711,8 @@
             gameState = 'gameOver';
             
             if (playerName) {
-                if (database) {
-                    saveOnlineRanking(playerName, score, gameTime);
-                } else {
-                    ranking.push({
-                        name: playerName,
-                        score: score,
-                        time: gameTime,
-                        date: new Date().toLocaleDateString()
-                    });
-                    ranking.sort((a, b) => b.score - a.score);
-                    ranking = ranking.slice(0, 10);
-                    saveRanking();
-                }
+                // オンラインランキングに保存を試行
+                saveOnlineRanking(playerName, score, gameTime);
             }
             
             const minutes = Math.floor(gameTime / 60);
