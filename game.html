@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANA Sky Navigator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #87CEEB, #E0F6FF);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            color: #003399;
+            font-size: 2.5em;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .game-container {
+            border: 4px solid #003399;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+            background: white;
+            padding: 10px;
+            position: relative;
+        }
+        
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+        }
+        
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            max-width: 800px;
+        }
+        
+        .item-info {
+            display: flex;
+            justify-content: space-around;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        
+        .item {
+            background: rgba(255,255,255,0.8);
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 2px;
+            font-size: 0.9em;
+        }
+        
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.95);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            border: 3px solid #ff0000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>✈️ ANA SKY NAVIGATOR ✈️</h1>
+        <p>HTML5版 - 軽量で高速！</p>
+    </div>
+    
+    <div class="game-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <div id="gameOver" class="game-over">
+            <h2 style="color: #ff0000; margin-top: 0;">ゲーム終了</h2>
+            <p>生存時間: <span id="finalTime">00:00</span></p>
+            <p>最終得点: <span id="finalScore">0</span></p>
+            <button onclick="restartGame()" style="padding: 10px 20px; font-size: 16px; background: #003399; color: white; border: none; border-radius: 5px; cursor: pointer;">再開 (スペースキー)</button>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <h3>🎮 操作方法</h3>
+        <p><strong>左右矢印キー または A/Dキー</strong>: 飛行機を操作</p>
+        <p><strong>スペースキー</strong>: ゲーム再開</p>
+        
+        <h3>🎯 アイテム</h3>
+        <div class="item-info">
+            <div class="item" style="border-left: 4px solid #FFD700;">🪙 コイン: 10点</div>
+            <div class="item" style="border-left: 4px solid #00FFFF;">💎 ジェム: 50点</div>
+            <div class="item" style="border-left: 4px solid #FF69B4;">⭐ スター: 100点</div>
+            <div class="item" style="border-left: 4px solid #FFFFFF;">💠 ダイヤ: 200点</div>
+        </div>
+        
+        <p><strong>目標</strong>: 障害物を避けながらアイテムを集めて、できるだけ長く生き残ろう！</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // ゲーム変数
+        let gameState = 'playing';
+        let plane = { x: 400, y: 500, width: 30, height: 40, speed: 8 };
+        let obstacles = [];
+        let items = [];
+        let score = 0;
+        let gameTime = 0;
+        let startTime = Date.now();
+        let lastObstacleTime = 0;
+        let lastItemTime = 0;
+        
+        // キー入力
+        const keys = {};
+        
+        // アイテムタイプ
+        const itemTypes = {
+            coin: { points: 10, color: '#FFD700', size: 12 },
+            gem: { points: 50, color: '#00FFFF', size: 15 },
+            star: { points: 100, color: '#FF69B4', size: 18 },
+            diamond: { points: 200, color: '#FFFFFF', size: 20 }
+        };
+        
+        // イベントリスナー
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space' && gameState === 'gameOver') {
+                e.preventDefault();
+                restartGame();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+        
+        function restartGame() {
+            gameState = 'playing';
+            plane.x = 400;
+            plane.y = 500;
+            obstacles = [];
+            items = [];
+            score = 0;
+            gameTime = 0;
+            startTime = Date.now();
+            lastObstacleTime = 0;
+            lastItemTime = 0;
+            document.getElementById('gameOver').style.display = 'none';
+        }
+        
+        function createObstacle() {
+            obstacles.push({
+                x: Math.random() * (canvas.width - 80) + 40,
+                y: -50,
+                width: 60,
+                height: 40,
+                speed: 3 + Math.floor(gameTime / 10)
+            });
+        }
+        
+        function createItem() {
+            const types = Object.keys(itemTypes);
+            let type;
+            
+            if (gameTime > 60) {
+                type = types[Math.floor(Math.random() * types.length)];
+            } else if (gameTime > 30) {
+                type = types[Math.floor(Math.random() * 3)];
+            } else {
+                type = types[Math.floor(Math.random() * 2)];
+            }
+            
+            const itemData = itemTypes[type];
+            items.push({
+                x: Math.random() * (canvas.width - 40) + 20,
+                y: -30,
+                width: itemData.size * 2,
+                height: itemData.size * 2,
+                type: type,
+                speed: 2 + Math.floor(gameTime / 15)
+            });
+        }
+        
+        function updateGame() {
+            if (gameState !== 'playing') return;
+            
+            gameTime = Math.floor((Date.now() - startTime) / 1000);
+            
+            // プレイヤー移動
+            if ((keys['ArrowLeft'] || keys['KeyA']) && plane.x > 0) {
+                plane.x -= plane.speed;
+            }
+            if ((keys['ArrowRight'] || keys['KeyD']) && plane.x < canvas.width - plane.width) {
+                plane.x += plane.speed;
+            }
+            
+            // 障害物生成
+            const obstacleFreq = Math.max(1000 - gameTime * 50, 300);
+            if (Date.now() - lastObstacleTime > obstacleFreq) {
+                createObstacle();
+                lastObstacleTime = Date.now();
+            }
+            
+            // アイテム生成
+            const itemFreq = Math.max(2000 - gameTime * 30, 800);
+            if (Date.now() - lastItemTime > itemFreq) {
+                createItem();
+                lastItemTime = Date.now();
+            }
+            
+            // 障害物移動
+            obstacles.forEach((obs, index) => {
+                obs.y += obs.speed;
+                if (obs.y > canvas.height) {
+                    obstacles.splice(index, 1);
+                    score += 10;
+                }
+            });
+            
+            // アイテム移動
+            items.forEach((item, index) => {
+                item.y += item.speed;
+                if (item.y > canvas.height) {
+                    items.splice(index, 1);
+                }
+            });
+            
+            // 衝突判定
+            checkCollisions();
+        }
+        
+        function checkCollisions() {
+            // 障害物との衝突
+            obstacles.forEach(obs => {
+                if (plane.x < obs.x + obs.width &&
+                    plane.x + plane.width > obs.x &&
+                    plane.y < obs.y + obs.height &&
+                    plane.y + plane.height > obs.y) {
+                    gameOver();
+                }
+            });
+            
+            // アイテムとの衝突
+            items.forEach((item, index) => {
+                if (plane.x < item.x + item.width &&
+                    plane.x + plane.width > item.x &&
+                    plane.y < item.y + item.height &&
+                    plane.y + plane.height > item.y) {
+                    score += itemTypes[item.type].points;
+                    items.splice(index, 1);
+                }
+            });
+        }
+        
+        function gameOver() {
+            gameState = 'gameOver';
+            const minutes = Math.floor(gameTime / 60);
+            const seconds = gameTime % 60;
+            document.getElementById('finalTime').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+        
+        function drawGame() {
+            // 背景をクリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 飛行機を描画
+            ctx.fillStyle = '#003399';
+            ctx.beginPath();
+            ctx.moveTo(plane.x + plane.width/2, plane.y);
+            ctx.lineTo(plane.x, plane.y + plane.height);
+            ctx.lineTo(plane.x + plane.width, plane.y + plane.height);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 障害物を描画
+            ctx.fillStyle = '#FFFFFF';
+            obstacles.forEach(obs => {
+                ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                ctx.strokeStyle = '#CCCCCC';
+                ctx.strokeRect(obs.x, obs.y, obs.width, obs.height);
+            });
+            
+            // アイテムを描画
+            items.forEach(item => {
+                const itemData = itemTypes[item.type];
+                ctx.fillStyle = itemData.color;
+                ctx.beginPath();
+                ctx.arc(item.x + item.width/2, item.y + item.height/2, itemData.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // ポイント表示
+                ctx.fillStyle = '#000000';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(itemData.points.toString(), item.x + item.width/2, item.y + item.height/2 + 4);
+            });
+            
+            // UI描画
+            drawUI();
+        }
+        
+        function drawUI() {
+            // スコア
+            ctx.fillStyle = '#003399';
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`得点: ${score}`, 20, 40);
+            
+            // 時間
+            const minutes = Math.floor(gameTime / 60);
+            const seconds = gameTime % 60;
+            ctx.fillText(`時間: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`, 20, 70);
+            
+            // 難易度
+            const level = Math.min(Math.floor(gameTime / 15) + 1, 10);
+            ctx.fillText(`難易度: Lv.${level}`, 20, 100);
+        }
+        
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // ゲーム開始
+        gameLoop();
+    </script>
+</body>
+</html>
