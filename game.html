@@ -343,7 +343,7 @@
         // ゲーム変数
         let gameState = 'title';
         let playerName = '';
-        let plane = { x: 450, y: 700, width: 60, height: 80, speed: 8 };
+        let plane = { x: 450, y: 700, width: 60, height: 80, speed: 10 };
         let obstacles = [];
         let items = [];
         let score = 0;
@@ -553,6 +553,7 @@
             plane.y = 700;
             plane.width = 60;
             plane.height = 80;
+            plane.speed = 10;
             obstacles = [];
             items = [];
             score = 0;
@@ -664,10 +665,21 @@
             if (isMouseDown) {
                 const targetX = mouseX - plane.width / 2;
                 const diff = targetX - plane.x;
-                if (Math.abs(diff) > 3) {
-                    const moveSpeed = Math.min(Math.abs(diff) * 0.15, plane.speed * 1.2);
+                const absDiff = Math.abs(diff);
+                
+                if (absDiff > 2) {
+                    // 移動速度を均等に調整
+                    let moveSpeed = Math.min(absDiff * 0.2, plane.speed * 1.5);
+                    
+                    // 小さな移動でも確実に反応するように調整
+                    if (absDiff < 20) {
+                        moveSpeed = Math.max(moveSpeed, 3);
+                    }
+                    
                     plane.x += Math.sign(diff) * moveSpeed;
                 }
+                
+                // 画面境界の制限
                 plane.x = Math.max(0, Math.min(canvas.width - plane.width, plane.x));
             }
             
