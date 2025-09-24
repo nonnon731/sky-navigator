@@ -122,19 +122,29 @@
         <div id="titleScreen" class="overlay">
             <h1 style="color: #003399; font-size: 3em; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Sky Navigator</h1>
             <div id="playerNameDisplay" style="margin-bottom: 30px; color: #003399; font-size: 1.2em;"></div>
-            <p style="color: #666; font-size: 1.1em; margin-bottom: 40px;">Enterキーまたはタップしてください</p>
-            <div style="display: flex; gap: 20px;">
-                <button class="menu-button" onclick="showNameInput()">名前設定 (N)</button>
-                <button class="menu-button" onclick="showRanking()">ランキング (R)</button>
+            <div id="gameStartSection" style="display: none;">
+                <button class="menu-button" onclick="startGame()" style="background: #FF6B35; font-size: 24px; padding: 20px 40px;">ゲーム開始</button>
+                <div style="margin-top: 20px; display: flex; gap: 20px;">
+                    <button class="menu-button" onclick="showNameInput()">名前変更</button>
+                    <button class="menu-button" onclick="showRanking()">ランキング</button>
+                </div>
+            </div>
+            <div id="nameRequiredSection">
+                <p style="color: #666; font-size: 1.1em; margin-bottom: 20px;">まず名前を入力してください</p>
+                <button class="menu-button" onclick="showNameInput()" style="background: #FF6B35; font-size: 20px;">名前を入力</button>
+                <div style="margin-top: 20px;">
+                    <button class="menu-button" onclick="showRanking()">ランキング</button>
+                </div>
             </div>
         </div>
         
         <!-- 名前入力画面 -->
         <div id="nameScreen" class="overlay" style="display: none;">
-            <h2 style="color: #003399;">名前入力</h2>
-            <input type="text" id="nameInput" class="name-input" placeholder="あなたの名前" maxlength="10">
-            <div>
-                <button class="menu-button" onclick="saveName()">決定</button>
+            <h2 style="color: #003399; margin-bottom: 10px;">パイロット名を入力</h2>
+            <p style="color: #666; margin-bottom: 20px;">ゲームを始めるには名前が必要です</p>
+            <input type="text" id="nameInput" class="name-input" placeholder="あなたの名前" maxlength="10" style="font-size: 18px; padding: 15px;">
+            <div style="margin-top: 20px;">
+                <button class="menu-button" onclick="saveName()" style="background: #FF6B35; font-size: 20px;">決定してゲームへ</button>
                 <button class="menu-button" onclick="showTitleScreen()">戻る</button>
             </div>
         </div>
@@ -161,7 +171,7 @@
     
     <div class="controls">
         <h3>🎮 操作方法</h3>
-        <p><strong>Enterキー または タップ</strong>: ゲーム開始</p>
+        <p><strong>スタートボタン または Enterキー</strong>: ゲーム開始</p>
         <p><strong>左右矢印キー / A・Dキー / マウス・タッチ</strong>: 飛行機を操作</p>
         <p><strong>スペースキー</strong>: ゲーム再開</p>
         
@@ -174,6 +184,7 @@
         </div>
         
         <p><strong>目標</strong>: 障害物を避けながらアイテムを集めて、できるだけ長く生き残ろう！</p>
+        <p><strong>注意</strong>: ゲームを始めるには名前の入力が必要です</p>
     </div>
 
     <script>
@@ -210,13 +221,11 @@
         
         // タッチ・マウスイベント
         canvas.addEventListener('mousedown', (e) => {
-            if (gameState === 'title') {
-                startGame();
-                return;
+            if (gameState === 'playing') {
+                isMouseDown = true;
+                const rect = canvas.getBoundingClientRect();
+                mouseX = e.clientX - rect.left;
             }
-            isMouseDown = true;
-            const rect = canvas.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
         });
         
         canvas.addEventListener('mousemove', (e) => {
@@ -232,13 +241,11 @@
         
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            if (gameState === 'title') {
-                startGame();
-                return;
+            if (gameState === 'playing') {
+                isMouseDown = true;
+                const rect = canvas.getBoundingClientRect();
+                mouseX = e.touches[0].clientX - rect.left;
             }
-            isMouseDown = true;
-            const rect = canvas.getBoundingClientRect();
-            mouseX = e.touches[0].clientX - rect.left;
         });
         
         canvas.addEventListener('touchmove', (e) => {
@@ -275,10 +282,17 @@
         
         function updatePlayerNameDisplay() {
             const display = document.getElementById('playerNameDisplay');
+            const gameStartSection = document.getElementById('gameStartSection');
+            const nameRequiredSection = document.getElementById('nameRequiredSection');
+            
             if (playerName) {
                 display.textContent = `パイロット: ${playerName}`;
+                gameStartSection.style.display = 'block';
+                nameRequiredSection.style.display = 'none';
             } else {
                 display.textContent = '';
+                gameStartSection.style.display = 'none';
+                nameRequiredSection.style.display = 'block';
             }
         }
         
@@ -305,7 +319,12 @@
         }
         
         function saveName() {
-            playerName = document.getElementById('nameInput').value.trim();
+            const inputName = document.getElementById('nameInput').value.trim();
+            if (inputName.length === 0) {
+                alert('名前を入力してください');
+                return;
+            }
+            playerName = inputName;
             savePlayerName();
             updatePlayerNameDisplay();
             showTitleScreen();
@@ -333,6 +352,12 @@
         }
         
         function startGame() {
+            if (!playerName) {
+                alert('まず名前を入力してください');
+                showNameInput();
+                return;
+            }
+            
             gameState = 'playing';
             plane.x = 400;
             plane.y = 500;
