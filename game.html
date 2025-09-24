@@ -265,7 +265,135 @@
         </div>
     </div>
     
+    <!-- AWS SDK -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1563.0.min.js"></script>
+    
     <script>
+        // AWS DynamoDB設定
+        AWS.config.update({
+            region: 'us-east-1',
+            accessKeyId: 'AKIAIOSFODNN7EXAMPLE', // デモ用（実際は環境変数で管理）
+            secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY' // デモ用
+        });
+        
+        const dynamodb = new AWS.DynamoDB.DocumentClient();
+        const TABLE_NAME = 'sky-navigator-ranking';
+        
+        // AWS DynamoDB を使用した真のオンライン同期
+        async function saveOnlineRanking(playerName, score, time) {
+            try {
+                console.log('AWS DynamoDB保存開始...');
+                
+                const params = {
+                    TableName: TABLE_NAME,
+                    Item: {
+                        playerId: `${playerName}_${Date.now()}`,
+                        playerName: playerName,
+                        score: score,
+                        time: time,
+                        date: new Date().toISOString().split('T')[0],
+                        timestamp: Date.now()
+                    }
+                };
+                
+                await dynamodb.put(params).promise();
+                console.log('AWS DynamoDB保存成功');
+                
+                // 従来のローカル保存も実行
+                saveLocalRanking(playerName, score, time);
+                
+            } catch (error) {
+                console.log('AWS DynamoDB保存エラー:', error);
+                
+                // エラー時はローカル保存のみ
+                saveLocalRanking(playerName, score, time);
+                
+                // ローカルバックアップに追加
+                try {
+                    const backup = JSON.parse(localStorage.getItem('skyNavigatorOnlineBackup') || '[]');
+                    backup.push({
+                        name: playerName,
+                        score: score,
+                        time: time,
+                        date: new Date().toISOString().split('T')[0],
+                        timestamp: Date.now()
+                    });
+                    backup.sort((a, b) => b.score - a.score);
+                    localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(backup.slice(0, 30)));
+                    console.log('ローカルバックアップに保存しました');
+                } catch (e) {
+                    console.log('バックアップ保存エラー:', e);
+                }
+            }
+        }
+        
+        // オンラインランキング読み込み
+        async function loadOnlineRankingData() {
+            try {
+                console.log('AWS DynamoDB読み込み開始...');
+                
+                const params = {
+                    TableName: TABLE_NAME,
+                    ScanIndexForward: false,
+                    Limit: 30
+                };
+                
+                const result = await dynamodb.scan(params).promise();
+                const rankings = result.Items || [];
+                
+                // スコア順にソート
+                rankings.sort((a, b) => b.score - a.score);
+                
+                console.log('AWS DynamoDB読み込み成功:', rankings.length, '件');
+                
+                // バックアップとして保存
+                localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(rankings));
+                
+                return rankings.map(item => ({
+                    name: item.playerName,
+                    score: item.score,
+                    time: item.time,
+                    date: item.date
+                }));
+                
+            } catch (error) {
+                console.log('AWS DynamoDB読み込みエラー:', error);
+                
+                // バックアップデータを使用
+                const backup = localStorage.getItem('skyNavigatorOnlineBackup');
+                if (backup) {
+                    const backupData = JSON.parse(backup);
+                    console.log('バックアップデータ使用:', backupData.length, '件');
+                    return backupData;
+                }
+                
+                // 完全に空のランキングから開始
+                console.log('空のランキングから開始');
+                return [];
+            }
+        }
+        
+        // AWS DynamoDB 接続テスト
+        async function testAWSConnection() {
+            try {
+                console.log('AWS DynamoDB接続テスト開始...');
+                
+                const params = {
+                    TableName: TABLE_NAME,
+                    Limit: 1
+                };
+                
+                await dynamodb.scan(params).promise();
+                console.log('✅ AWS DynamoDB接続成功!');
+                return true;
+                
+            } catch (error) {
+                console.log('❌ AWS DynamoDB接続エラー:', error.message);
+                console.log('エラー詳細:', error);
+                return false;
+            }
+        }
+    </script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
@@ -1168,14 +1296,130 @@
             requestAnimationFrame(gameLoop);
         }
         
-        // 初期化とデバッグ
+        // GitHub Pages を使用したシンプルなオンライン同期
+        const RANKING_URL = 'https://nonnon731.github.io/sky-navigator/ranking.json';
+        
+        // オンラインランキング保存
+        async function saveOnlineRanking(playerName, score, time) {
+            try {
+                console.log('オンラインランキング保存開始...');
+                
+                // 現在のオンラインランキングを取得
+                const currentRanking = await loadOnlineRankingData();
+                
+                // 新しいスコアを追加
+                const newEntry = {
+                    name: playerName,
+                    score: score,
+                    time: time,
+                    date: new Date().toISOString().split('T')[0],
+                    timestamp: Date.now()
+                };
+                
+                currentRanking.push(newEntry);
+                
+                // スコア順にソート、上位30位まで保持
+                currentRanking.sort((a, b) => b.score - a.score);
+                const topRankings = currentRanking.slice(0, 30);
+                
+                // ローカルバックアップに保存（GitHub Pagesは読み取り専用）
+                localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(topRankings));
+                console.log('ローカルバックアップに保存:', topRankings.length, '件');
+                
+                // 従来のローカル保存も実行
+                saveLocalRanking(playerName, score, time);
+                
+                console.log('注意: GitHub Pagesは読み取り専用です。手動でranking.jsonを更新してください。');
+                
+            } catch (error) {
+                console.log('オンライン保存エラー:', error);
+                
+                // エラー時はローカル保存のみ
+                saveLocalRanking(playerName, score, time);
+                
+                // ローカルバックアップに追加
+                try {
+                    const backup = JSON.parse(localStorage.getItem('skyNavigatorOnlineBackup') || '[]');
+                    backup.push({
+                        name: playerName,
+                        score: score,
+                        time: time,
+                        date: new Date().toISOString().split('T')[0],
+                        timestamp: Date.now()
+                    });
+                    backup.sort((a, b) => b.score - a.score);
+                    localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(backup.slice(0, 30)));
+                    console.log('ローカルバックアップに保存しました');
+                } catch (e) {
+                    console.log('バックアップ保存エラー:', e);
+                }
+            }
+        }
+        
+        // オンラインランキング読み込み
+        async function loadOnlineRankingData() {
+            try {
+                console.log('オンラインランキング取得中...');
+                
+                const response = await fetch(RANKING_URL + '?t=' + Date.now());
+                
+                if (response.ok) {
+                    const onlineData = await response.json();
+                    console.log('オンラインランキング取得成功:', onlineData.length, '件');
+                    
+                    // バックアップとして保存
+                    localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(onlineData));
+                    return onlineData;
+                } else {
+                    throw new Error('GitHub Pages取得失敗: ' + response.status);
+                }
+                
+            } catch (error) {
+                console.log('オンライン取得エラー:', error);
+                
+                // バックアップデータを使用
+                const backup = localStorage.getItem('skyNavigatorOnlineBackup');
+                if (backup) {
+                    const backupData = JSON.parse(backup);
+                    console.log('バックアップデータ使用:', backupData.length, '件');
+                    return backupData;
+                }
+                
+                // 完全に空のランキングから開始
+                console.log('空のランキングから開始');
+                return [];
+            }
+        }
+        
+        // GitHub Pages 接続テスト
+        async function testGitHubPagesConnection() {
+            try {
+                console.log('GitHub Pages接続テスト開始...');
+                
+                const response = await fetch(RANKING_URL + '?t=' + Date.now());
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ GitHub Pages接続成功!');
+                    console.log('現在のデータ件数:', data.length);
+                    return true;
+                } else {
+                    console.log('❌ GitHub Pages接続失敗:', response.status, response.statusText);
+                    return false;
+                }
+                
+            } catch (error) {
+                console.log('❌ GitHub Pages接続エラー:', error.message);
+                return false;
+            }
+        }
         async function initializeGame() {
             console.log('ゲーム初期化開始...');
             
-            // JSONBin.io接続テスト
-            const isConnected = await testJSONBinConnection();
+            // GitHub Pages接続テスト
+            const isConnected = await testGitHubPagesConnection();
             if (isConnected) {
-                console.log('🌐 オンライン同期: 有効');
+                console.log('🌐 GitHub Pages同期: 有効');
             } else {
                 console.log('📱 オフラインモード: ローカル保存のみ');
             }
