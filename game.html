@@ -242,17 +242,27 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Firebase設定（デモ用）
+        // Firebase設定（実際の設定情報に置き換えてください）
         const firebaseConfig = {
-            apiKey: "demo-key",
-            authDomain: "sky-navigator-demo.firebaseapp.com",
-            databaseURL: "https://sky-navigator-demo-default-rtdb.firebaseio.com",
-            projectId: "sky-navigator-demo"
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
         
-        // Firebase初期化（デモ用 - 実際は動作しません）
+        // Firebase初期化
         let database = null;
-        console.log('オンラインランキング機能は準備中です');
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            console.log('Firebase接続成功！');
+        } catch (error) {
+            console.log('Firebase接続エラー:', error);
+            console.log('ローカルランキングモードで動作します');
+        }
         
         // ゲーム変数
         let gameState = 'title';
