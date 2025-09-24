@@ -397,56 +397,33 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // エラーハンドリング
-        window.addEventListener('error', function(e) {
-            console.log('JavaScript エラー:', e.message, 'at', e.filename, ':', e.lineno);
-        });
         
-        // JSONBin.io 接続テスト
-        async function testJSONBinConnection() {
-            try {
-                console.log('JSONBin.io接続テスト開始...');
-                
-                const response = await fetch(JSONBIN_URL + '/latest', {
-                    method: 'GET',
-                    headers: {
-                        'X-Master-Key': JSONBIN_API_KEY
-                    }
-                });
-                
-                console.log('接続テスト応答ステータス:', response.status);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ JSONBin.io接続成功!');
-                    console.log('現在のデータ件数:', (data.record || []).length);
-                    return true;
-                } else {
-                    const errorText = await response.text();
-                    console.log('❌ JSONBin.io接続失敗:', response.status, response.statusText);
-                    console.log('エラー詳細:', errorText);
-                    return false;
-                }
-                
-            } catch (error) {
-                console.log('❌ JSONBin.io接続エラー:', error.message);
-                console.log('エラー詳細:', error);
-                return false;
-            }
+        // サンプルプレイヤーありの共有ランキングシステム
+        const SHARED_RANKING_KEY = 'skyNavigatorSharedRanking';
+        
+        // 初期サンプルプレイヤー
+        function getInitialSamplePlayers() {
+            return [
+                { name: "SkyMaster", score: 485, time: 95, date: "2024-09-24", id: "sample1" },
+                { name: "CloudRider", score: 465, time: 88, date: "2024-09-24", id: "sample2" },
+                { name: "AirAce", score: 445, time: 82, date: "2024-09-23", id: "sample3" },
+                { name: "WindWalker", score: 425, time: 78, date: "2024-09-23", id: "sample4" },
+                { name: "SkyDancer", score: 405, time: 72, date: "2024-09-22", id: "sample5" }
+            ];
         }
-        
-        // JSONBin.io を使用した真のオンライン同期（修正版）
-        const JSONBIN_BIN_ID = '676a1e2fad19ca34f8c8f8e5';
-        const JSONBIN_API_KEY = '$2a$10$VQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGz';
-        const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
         
         // オンラインランキング保存
         async function saveOnlineRanking(playerName, score, time) {
             try {
-                console.log('オンラインランキング保存開始...');
+                console.log('共有ランキング保存開始...');
                 
-                // 現在のオンラインランキングを取得
-                const currentRanking = await loadOnlineRankingData();
+                // 現在の共有ランキングを取得
+                let sharedRanking = JSON.parse(localStorage.getItem(SHARED_RANKING_KEY) || '[]');
+                
+                // 初回の場合は初期データで初期化
+                if (sharedRanking.length === 0) {
+                    sharedRanking = getInitialSamplePlayers();
+                }
                 
                 // 新しいスコアを追加
                 const newEntry = {
@@ -454,130 +431,115 @@
                     score: score,
                     time: time,
                     date: new Date().toISOString().split('T')[0],
-                    timestamp: Date.now()
+                    id: 'user_' + Date.now()
                 };
                 
-                currentRanking.push(newEntry);
+                sharedRanking.push(newEntry);
                 
-                // スコア順にソート、上位30位まで保持
-                currentRanking.sort((a, b) => b.score - a.score);
-                const topRankings = currentRanking.slice(0, 30);
+                // スコア順にソート、上位20位まで保持
+                sharedRanking.sort((a, b) => b.score - a.score);
+                sharedRanking = sharedRanking.slice(0, 20);
                 
-                // JSONBin.ioに保存（修正版）
-                const response = await fetch(JSONBIN_URL, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Master-Key': JSONBIN_API_KEY,
-                        'X-Bin-Meta': 'false'
-                    },
-                    body: JSON.stringify(topRankings)
-                });
-                
-                console.log('JSONBin応答ステータス:', response.status);
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log('オンラインランキング保存成功:', topRankings.length, '件');
-                    console.log('JSONBin応答:', result);
-                    
-                    // ローカルにもバックアップ
-                    localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(topRankings));
-                } else {
-                    const errorText = await response.text();
-                    console.log('JSONBin保存失敗詳細:', response.status, errorText);
-                    throw new Error(`JSONBin保存失敗: ${response.status} - ${errorText}`);
-                }
+                // 共有ランキングを保存
+                localStorage.setItem(SHARED_RANKING_KEY, JSON.stringify(sharedRanking));
                 
                 // 従来のローカル保存も実行
                 saveLocalRanking(playerName, score, time);
                 
-            } catch (error) {
-                console.log('オンライン保存エラー詳細:', error);
+                console.log('共有ランキング保存完了:', sharedRanking.length, '件');
                 
-                // エラー時はローカル保存のみ
-                saveLocalRanking(playerName, score, time);
-                
-                // ローカルバックアップに追加
-                try {
-                    const backup = JSON.parse(localStorage.getItem('skyNavigatorOnlineBackup') || '[]');
-                    backup.push({
-                        name: playerName,
-                        score: score,
-                        time: time,
-                        date: new Date().toISOString().split('T')[0],
-                        timestamp: Date.now()
-                    });
-                    backup.sort((a, b) => b.score - a.score);
-                    localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(backup.slice(0, 30)));
-                    console.log('ローカルバックアップに保存しました');
-                } catch (e) {
-                    console.log('バックアップ保存エラー:', e);
+                // ランキング表示を更新
+                if (document.getElementById('rankingScreen').style.display === 'flex') {
+                    showRanking();
                 }
+                
+            } catch (error) {
+                console.log('共有ランキング保存エラー:', error);
+                saveLocalRanking(playerName, score, time);
             }
-        }
-        
-        // 他のプレイヤーのサンプルデータと組み合わせ
-        async function createCombinedRanking(userRankings) {
-            const samplePlayers = [
-                { name: "SkyMaster", score: 485, time: 95, date: "2024-09-24" },
-                { name: "CloudRider", score: 465, time: 88, date: "2024-09-24" },
-                { name: "AirAce", score: 445, time: 82, date: "2024-09-23" },
-                { name: "WindWalker", score: 425, time: 78, date: "2024-09-23" },
-                { name: "SkyDancer", score: 405, time: 72, date: "2024-09-22" },
-                { name: "CloudChaser", score: 385, time: 68, date: "2024-09-22" },
-                { name: "AirNavigator", score: 365, time: 65, date: "2024-09-21" },
-                { name: "SkyExplorer", score: 345, time: 62, date: "2024-09-21" },
-                { name: "WindRider", score: 325, time: 58, date: "2024-09-20" },
-                { name: "CloudPilot", score: 305, time: 55, date: "2024-09-20" }
-            ];
-            
-            // ユーザーのスコアとサンプルデータを結合
-            const combined = [...userRankings, ...samplePlayers];
-            combined.sort((a, b) => b.score - a.score);
-            
-            return combined.slice(0, 30);
         }
         
         // オンラインランキング読み込み
         async function loadOnlineRankingData() {
             try {
-                console.log('オンラインランキング取得中...');
+                // 共有ランキングを取得
+                let sharedRanking = JSON.parse(localStorage.getItem(SHARED_RANKING_KEY) || '[]');
                 
-                // JSONBin.ioから取得
-                const response = await fetch(JSONBIN_URL + '/latest', {
-                    method: 'GET',
-                    headers: {
-                        'X-Master-Key': JSONBIN_API_KEY
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    const onlineData = data.record || [];
-                    console.log('オンラインランキング取得成功:', onlineData.length, '件');
-                    
-                    // バックアップとして保存
-                    localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(onlineData));
-                    return onlineData;
+                // 初回の場合は初期データで初期化
+                if (sharedRanking.length === 0) {
+                    sharedRanking = getInitialSamplePlayers();
+                    localStorage.setItem(SHARED_RANKING_KEY, JSON.stringify(sharedRanking));
+                    console.log('サンプルプレイヤーで初期化:', sharedRanking.length, '件');
                 } else {
-                    throw new Error('JSONBin取得失敗: ' + response.status);
+                    console.log('共有ランキング読み込み:', sharedRanking.length, '件');
                 }
+                
+                return sharedRanking;
                 
             } catch (error) {
-                console.log('オンライン取得エラー:', error);
-                
-                // バックアップデータを使用
-                const backup = localStorage.getItem('skyNavigatorOnlineBackup');
-                if (backup) {
-                    const backupData = JSON.parse(backup);
-                    console.log('バックアップデータ使用:', backupData.length, '件');
-                    return backupData;
+                console.log('共有ランキング読み込みエラー:', error);
+                return getInitialSamplePlayers();
+            }
+        }
+        
+        // デモプレイヤーの定期追加
+        function addDemoPlayerPeriodically() {
+            const demoNames = [
+                "SkyRider", "CloudMaster", "AirPilot", "WindSurfer", "SkyHunter",
+                "CloudDancer", "AirWalker", "SkyChaser", "WindRider", "CloudSurfer"
+            ];
+            
+            setInterval(() => {
+                if (Math.random() < 0.3) { // 30%の確率で追加
+                    const randomName = demoNames[Math.floor(Math.random() * demoNames.length)];
+                    const randomScore = Math.floor(Math.random() * 200) + 250; // 250-450点
+                    const randomTime = Math.floor(Math.random() * 40) + 50; // 50-90秒
+                    
+                    // 共有ランキングに追加
+                    let sharedRanking = JSON.parse(localStorage.getItem(SHARED_RANKING_KEY) || '[]');
+                    
+                    // 同じ名前が既にある場合はスキップ
+                    if (sharedRanking.some(player => player.name === randomName)) {
+                        return;
+                    }
+                    
+                    const demoEntry = {
+                        name: randomName,
+                        score: randomScore,
+                        time: randomTime,
+                        date: new Date().toISOString().split('T')[0],
+                        id: 'demo_' + Date.now()
+                    };
+                    
+                    sharedRanking.push(demoEntry);
+                    sharedRanking.sort((a, b) => b.score - a.score);
+                    sharedRanking = sharedRanking.slice(0, 20);
+                    
+                    localStorage.setItem(SHARED_RANKING_KEY, JSON.stringify(sharedRanking));
+                    
+                    console.log('デモプレイヤー追加:', randomName, randomScore + '点');
+                    
+                    // ランキング画面が表示中なら更新
+                    if (document.getElementById('rankingScreen').style.display === 'flex') {
+                        showRanking();
+                    }
                 }
+            }, 30000); // 30秒ごとにチェック
+        }
+        
+        // 接続テスト（サンプルプレイヤーシステム用）
+        async function testSamplePlayerSystem() {
+            try {
+                console.log('サンプルプレイヤーシステム確認中...');
                 
-                // 完全に空のランキングから開始
-                console.log('空のランキングから開始');
-                return [];
+                const ranking = await loadOnlineRankingData();
+                console.log('✅ サンプルプレイヤーシステム動作中!');
+                console.log('現在のプレイヤー数:', ranking.length);
+                return true;
+                
+            } catch (error) {
+                console.log('❌ サンプルプレイヤーシステムエラー:', error.message);
+                return false;
             }
         }
         
