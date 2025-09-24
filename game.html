@@ -46,11 +46,15 @@
             touch-action: none;
             max-width: 100%;
             height: auto;
+            margin: 0 auto;
+            border: 2px solid #003399;
+            border-radius: 10px;
         }
         
         @media (max-width: 850px) {
             canvas {
-                width: 100%;
+                width: 95%;
+                max-width: 400px;
                 height: auto;
             }
             
@@ -179,7 +183,7 @@
     </div>
     
     <div class="game-container">
-        <canvas id="gameCanvas" width="900" height="800"></canvas>
+        <canvas id="gameCanvas" width="400" height="700"></canvas>
         
         <!-- タイトル画面 -->
         <div id="titleScreen" class="overlay">
@@ -377,7 +381,7 @@
         // ゲーム変数
         let gameState = 'title';
         let playerName = '';
-        let plane = { x: 450, y: 700, width: 60, height: 80, speed: 10 };
+        let plane = { x: 170, y: 600, width: 60, height: 80, speed: 10 };
         let obstacles = [];
         let items = [];
         let score = 0;
@@ -583,8 +587,8 @@
             
             // ゲーム状態を初期化
             gameState = 'playing';
-            plane.x = 450;
-            plane.y = 700;
+            plane.x = 170;
+            plane.y = 600;
             plane.width = 60;
             plane.height = 80;
             plane.speed = 10;
@@ -701,13 +705,20 @@
                 const diff = targetX - plane.x;
                 const absDiff = Math.abs(diff);
                 
-                if (absDiff > 2) {
-                    // 移動速度を均等に調整
-                    let moveSpeed = Math.min(absDiff * 0.2, plane.speed * 1.5);
+                if (absDiff > 1) {
+                    // 右移動を優遇し、左移動を抑制
+                    let moveSpeed;
+                    if (diff > 0) {
+                        // 右移動: より敏感に
+                        moveSpeed = Math.min(absDiff * 0.25, plane.speed * 1.8);
+                    } else {
+                        // 左移動: やや抑制
+                        moveSpeed = Math.min(absDiff * 0.18, plane.speed * 1.3);
+                    }
                     
-                    // 小さな移動でも確実に反応するように調整
-                    if (absDiff < 20) {
-                        moveSpeed = Math.max(moveSpeed, 3);
+                    // 小さな移動でも確実に反応
+                    if (absDiff < 15) {
+                        moveSpeed = Math.max(moveSpeed, diff > 0 ? 4 : 2.5);
                     }
                     
                     plane.x += Math.sign(diff) * moveSpeed;
