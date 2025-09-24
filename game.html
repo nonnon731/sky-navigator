@@ -274,6 +274,34 @@
             console.log('JavaScript エラー:', e.message, 'at', e.filename, ':', e.lineno);
         });
         
+        // JSONBin.io 接続テスト
+        async function testJSONBinConnection() {
+            try {
+                console.log('JSONBin.io接続テスト開始...');
+                
+                const response = await fetch(JSONBIN_URL + '/latest', {
+                    method: 'GET',
+                    headers: {
+                        'X-Master-Key': JSONBIN_API_KEY
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('✅ JSONBin.io接続成功!');
+                    console.log('現在のデータ件数:', (data.record || []).length);
+                    return true;
+                } else {
+                    console.log('❌ JSONBin.io接続失敗:', response.status, response.statusText);
+                    return false;
+                }
+                
+            } catch (error) {
+                console.log('❌ JSONBin.io接続エラー:', error.message);
+                return false;
+            }
+        }
+        
         // JSONBin.io を使用した真のオンライン同期
         const JSONBIN_BIN_ID = '676a1e2fad19ca34f8c8f8e5';
         const JSONBIN_API_KEY = '$2a$10$VQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGz';
@@ -1130,6 +1158,14 @@
         // 初期化とデバッグ
         async function initializeGame() {
             console.log('ゲーム初期化開始...');
+            
+            // JSONBin.io接続テスト
+            const isConnected = await testJSONBinConnection();
+            if (isConnected) {
+                console.log('🌐 オンライン同期: 有効');
+            } else {
+                console.log('📱 オフラインモード: ローカル保存のみ');
+            }
             
             // 古いテストデータをクリア
             localStorage.removeItem('skyNavigatorSharedRanking');
