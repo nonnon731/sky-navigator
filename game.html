@@ -240,12 +240,17 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // JSONBin.io設定（Firebase代替 - 無料で簡単）
-        const JSONBIN_BIN_ID = 'sky-navigator-ranking'; // 固定ID
-        const JSONBIN_API_KEY = '$2a$10$demo.key.for.jsonbin.access'; // デモキー
+        // GitHub Gist設定
+        const GIST_ID = 'YOUR_GIST_ID_HERE'; // 作成したGistのIDを入力
         
-        // オンラインランキング保存（JSONBin使用）
+        // オンラインランキング保存（GitHub Gist使用）
         async function saveOnlineRanking(playerName, score, time) {
+            if (GIST_ID === 'YOUR_GIST_ID_HERE') {
+                console.log('Gist IDが設定されていません。ローカル保存します。');
+                saveLocalRanking(playerName, score, time);
+                return;
+            }
+            
             try {
                 // 現在のランキングを取得
                 const currentRanking = await loadOnlineRankingData();
@@ -263,26 +268,47 @@
                 currentRanking.sort((a, b) => b.score - a.score);
                 const topRankings = currentRanking.slice(0, 30);
                 
-                // 簡易的なローカル保存（実際のオンライン機能は設定後に有効）
-                localStorage.setItem('skyNavigatorOnlineRanking', JSON.stringify(topRankings));
-                console.log('ランキング保存完了（ローカル）');
+                // Gistに保存
+                const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        files: {
+                            'sky-navigator-ranking.json': {
+                                content: JSON.stringify(topRankings, null, 2)
+                            }
+                        }
+                    })
+                });
                 
+                if (response.ok) {
+                    console.log('オンラインランキング保存成功！');
+                } else {
+                    throw new Error('保存失敗');
+                }
             } catch (error) {
-                console.log('ランキング保存エラー:', error);
+                console.log('オンライン保存エラー:', error);
                 saveLocalRanking(playerName, score, time);
             }
         }
         
         // オンラインランキング読み込み
         async function loadOnlineRankingData() {
+            if (GIST_ID === 'YOUR_GIST_ID_HERE') {
+                return [];
+            }
+            
             try {
-                // 簡易的なローカル読み込み
-                const saved = localStorage.getItem('skyNavigatorOnlineRanking');
-                if (saved) {
-                    return JSON.parse(saved);
+                const response = await fetch(`https://api.github.com/gists/${GIST_ID}`);
+                if (response.ok) {
+                    const gist = await response.json();
+                    const content = gist.files['sky-navigator-ranking.json'].content;
+                    return JSON.parse(content);
                 }
             } catch (error) {
-                console.log('ランキング読み込みエラー:', error);
+                console.log('オンライン読み込みエラー:', error);
             }
             return [];
         }
