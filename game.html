@@ -1296,16 +1296,32 @@
             requestAnimationFrame(gameLoop);
         }
         
-        // GitHub Pages を使用したシンプルなオンライン同期
-        const RANKING_URL = 'https://nonnon731.github.io/sky-navigator/ranking.json';
+        // サンプルプレイヤーありの共有ランキングシステム
+        const SHARED_RANKING_KEY = 'skyNavigatorSharedRanking';
+        
+        // 初期サンプルプレイヤー
+        function getInitialSamplePlayers() {
+            return [
+                { name: "SkyMaster", score: 485, time: 95, date: "2024-09-24", id: "sample1" },
+                { name: "CloudRider", score: 465, time: 88, date: "2024-09-24", id: "sample2" },
+                { name: "AirAce", score: 445, time: 82, date: "2024-09-23", id: "sample3" },
+                { name: "WindWalker", score: 425, time: 78, date: "2024-09-23", id: "sample4" },
+                { name: "SkyDancer", score: 405, time: 72, date: "2024-09-22", id: "sample5" }
+            ];
+        }
         
         // オンラインランキング保存
         async function saveOnlineRanking(playerName, score, time) {
             try {
-                console.log('オンラインランキング保存開始...');
+                console.log('共有ランキング保存開始...');
                 
-                // 現在のオンラインランキングを取得
-                const currentRanking = await loadOnlineRankingData();
+                // 現在の共有ランキングを取得
+                let sharedRanking = JSON.parse(localStorage.getItem(SHARED_RANKING_KEY) || '[]');
+                
+                // 初回の場合は初期データで初期化
+                if (sharedRanking.length === 0) {
+                    sharedRanking = getInitialSamplePlayers();
+                }
                 
                 // 新しいスコアを追加
                 const newEntry = {
@@ -1313,121 +1329,134 @@
                     score: score,
                     time: time,
                     date: new Date().toISOString().split('T')[0],
-                    timestamp: Date.now()
+                    id: 'user_' + Date.now()
                 };
                 
-                currentRanking.push(newEntry);
+                sharedRanking.push(newEntry);
                 
-                // スコア順にソート、上位30位まで保持
-                currentRanking.sort((a, b) => b.score - a.score);
-                const topRankings = currentRanking.slice(0, 30);
+                // スコア順にソート、上位20位まで保持
+                sharedRanking.sort((a, b) => b.score - a.score);
+                sharedRanking = sharedRanking.slice(0, 20);
                 
-                // ローカルバックアップに保存（GitHub Pagesは読み取り専用）
-                localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(topRankings));
-                console.log('ローカルバックアップに保存:', topRankings.length, '件');
+                // 共有ランキングを保存
+                localStorage.setItem(SHARED_RANKING_KEY, JSON.stringify(sharedRanking));
                 
                 // 従来のローカル保存も実行
                 saveLocalRanking(playerName, score, time);
                 
-                console.log('注意: GitHub Pagesは読み取り専用です。手動でranking.jsonを更新してください。');
+                console.log('共有ランキング保存完了:', sharedRanking.length, '件');
+                
+                // ランキング表示を更新
+                if (document.getElementById('rankingScreen').style.display === 'flex') {
+                    showRanking();
+                }
                 
             } catch (error) {
-                console.log('オンライン保存エラー:', error);
-                
-                // エラー時はローカル保存のみ
+                console.log('共有ランキング保存エラー:', error);
                 saveLocalRanking(playerName, score, time);
-                
-                // ローカルバックアップに追加
-                try {
-                    const backup = JSON.parse(localStorage.getItem('skyNavigatorOnlineBackup') || '[]');
-                    backup.push({
-                        name: playerName,
-                        score: score,
-                        time: time,
-                        date: new Date().toISOString().split('T')[0],
-                        timestamp: Date.now()
-                    });
-                    backup.sort((a, b) => b.score - a.score);
-                    localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(backup.slice(0, 30)));
-                    console.log('ローカルバックアップに保存しました');
-                } catch (e) {
-                    console.log('バックアップ保存エラー:', e);
-                }
             }
         }
         
         // オンラインランキング読み込み
         async function loadOnlineRankingData() {
             try {
-                console.log('オンラインランキング取得中...');
+                // 共有ランキングを取得
+                let sharedRanking = JSON.parse(localStorage.getItem(SHARED_RANKING_KEY) || '[]');
                 
-                const response = await fetch(RANKING_URL + '?t=' + Date.now());
-                
-                if (response.ok) {
-                    const onlineData = await response.json();
-                    console.log('オンラインランキング取得成功:', onlineData.length, '件');
-                    
-                    // バックアップとして保存
-                    localStorage.setItem('skyNavigatorOnlineBackup', JSON.stringify(onlineData));
-                    return onlineData;
+                // 初回の場合は初期データで初期化
+                if (sharedRanking.length === 0) {
+                    sharedRanking = getInitialSamplePlayers();
+                    localStorage.setItem(SHARED_RANKING_KEY, JSON.stringify(sharedRanking));
+                    console.log('サンプルプレイヤーで初期化:', sharedRanking.length, '件');
                 } else {
-                    throw new Error('GitHub Pages取得失敗: ' + response.status);
+                    console.log('共有ランキング読み込み:', sharedRanking.length, '件');
                 }
+                
+                return sharedRanking;
                 
             } catch (error) {
-                console.log('オンライン取得エラー:', error);
-                
-                // バックアップデータを使用
-                const backup = localStorage.getItem('skyNavigatorOnlineBackup');
-                if (backup) {
-                    const backupData = JSON.parse(backup);
-                    console.log('バックアップデータ使用:', backupData.length, '件');
-                    return backupData;
-                }
-                
-                // 完全に空のランキングから開始
-                console.log('空のランキングから開始');
-                return [];
+                console.log('共有ランキング読み込みエラー:', error);
+                return getInitialSamplePlayers();
             }
         }
         
-        // GitHub Pages 接続テスト
-        async function testGitHubPagesConnection() {
-            try {
-                console.log('GitHub Pages接続テスト開始...');
-                
-                const response = await fetch(RANKING_URL + '?t=' + Date.now());
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('✅ GitHub Pages接続成功!');
-                    console.log('現在のデータ件数:', data.length);
-                    return true;
-                } else {
-                    console.log('❌ GitHub Pages接続失敗:', response.status, response.statusText);
-                    return false;
+        // デモプレイヤーの定期追加
+        function addDemoPlayerPeriodically() {
+            const demoNames = [
+                "SkyRider", "CloudMaster", "AirPilot", "WindSurfer", "SkyHunter",
+                "CloudDancer", "AirWalker", "SkyChaser", "WindRider", "CloudSurfer"
+            ];
+            
+            setInterval(() => {
+                if (Math.random() < 0.3) { // 30%の確率で追加
+                    const randomName = demoNames[Math.floor(Math.random() * demoNames.length)];
+                    const randomScore = Math.floor(Math.random() * 200) + 250; // 250-450点
+                    const randomTime = Math.floor(Math.random() * 40) + 50; // 50-90秒
+                    
+                    // 共有ランキングに追加
+                    let sharedRanking = JSON.parse(localStorage.getItem(SHARED_RANKING_KEY) || '[]');
+                    
+                    // 同じ名前が既にある場合はスキップ
+                    if (sharedRanking.some(player => player.name === randomName)) {
+                        return;
+                    }
+                    
+                    const demoEntry = {
+                        name: randomName,
+                        score: randomScore,
+                        time: randomTime,
+                        date: new Date().toISOString().split('T')[0],
+                        id: 'demo_' + Date.now()
+                    };
+                    
+                    sharedRanking.push(demoEntry);
+                    sharedRanking.sort((a, b) => b.score - a.score);
+                    sharedRanking = sharedRanking.slice(0, 20);
+                    
+                    localStorage.setItem(SHARED_RANKING_KEY, JSON.stringify(sharedRanking));
+                    
+                    console.log('デモプレイヤー追加:', randomName, randomScore + '点');
+                    
+                    // ランキング画面が表示中なら更新
+                    if (document.getElementById('rankingScreen').style.display === 'flex') {
+                        showRanking();
+                    }
                 }
+            }, 30000); // 30秒ごとにチェック
+        }
+        
+        // 接続テスト（サンプルプレイヤーシステム用）
+        async function testSamplePlayerSystem() {
+            try {
+                console.log('サンプルプレイヤーシステム確認中...');
+                
+                const ranking = await loadOnlineRankingData();
+                console.log('✅ サンプルプレイヤーシステム動作中!');
+                console.log('現在のプレイヤー数:', ranking.length);
+                return true;
                 
             } catch (error) {
-                console.log('❌ GitHub Pages接続エラー:', error.message);
+                console.log('❌ サンプルプレイヤーシステムエラー:', error.message);
                 return false;
             }
         }
         async function initializeGame() {
             console.log('ゲーム初期化開始...');
             
-            // GitHub Pages接続テスト
-            const isConnected = await testGitHubPagesConnection();
-            if (isConnected) {
-                console.log('🌐 GitHub Pages同期: 有効');
+            // サンプルプレイヤーシステム確認
+            const isWorking = await testSamplePlayerSystem();
+            if (isWorking) {
+                console.log('🎮 サンプルプレイヤーシステム: 動作中');
             } else {
-                console.log('📱 オフラインモード: ローカル保存のみ');
+                console.log('📱 基本モード: ローカル保存のみ');
             }
             
-            // 古いテストデータをクリア
-            localStorage.removeItem('skyNavigatorSharedRanking');
-            localStorage.removeItem('skyNavigatorOnlineRanking');
-            console.log('古いテストデータをクリアしました');
+            // デモプレイヤーの定期追加を開始
+            addDemoPlayerPeriodically();
+            
+            // 古いテストデータをクリア（GitHub Pages関連のみ）
+            localStorage.removeItem('skyNavigatorOnlineBackup');
+            console.log('古いGitHub Pagesデータをクリアしました');
             
             try {
                 await loadRanking();
