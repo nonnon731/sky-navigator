@@ -155,7 +155,7 @@
     </div>
     
     <div class="game-container">
-        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <canvas id="gameCanvas" width="800" height="700"></canvas>
         
         <!-- タイトル画面 -->
         <div id="titleScreen" class="overlay">
@@ -243,7 +243,7 @@
         // ゲーム変数
         let gameState = 'title';
         let playerName = '';
-        let plane = { x: 400, y: 500, width: 60, height: 80, speed: 8 };
+        let plane = { x: 400, y: 600, width: 60, height: 80, speed: 8 };
         let obstacles = [];
         let items = [];
         let score = 0;
@@ -428,7 +428,7 @@
             // ゲーム状態を初期化
             gameState = 'playing';
             plane.x = 400;
-            plane.y = 500;
+            plane.y = 600;
             plane.width = 60;
             plane.height = 80;
             obstacles = [];
