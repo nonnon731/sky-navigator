@@ -116,13 +116,15 @@
     <div class="game-container">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         
-        <!-- スタート画面 -->
-        <div id="startScreen" class="overlay">
-            <h2 style="color: #003399; margin-bottom: 30px;">Sky Navigator</h2>
-            <div id="playerNameDisplay" style="margin-bottom: 20px; color: #003399;"></div>
-            <button class="menu-button" onclick="startGame()">ゲーム開始</button>
-            <button class="menu-button" onclick="showNameInput()">名前設定</button>
-            <button class="menu-button" onclick="showRanking()">ランキング</button>
+        <!-- タイトル画面 -->
+        <div id="titleScreen" class="overlay">
+            <h1 style="color: #003399; font-size: 3em; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Sky Navigator</h1>
+            <div id="playerNameDisplay" style="margin-bottom: 30px; color: #003399; font-size: 1.2em;"></div>
+            <p style="color: #666; font-size: 1.1em; margin-bottom: 40px;">Enterキーを押してください</p>
+            <div style="display: flex; gap: 20px;">
+                <button class="menu-button" onclick="showNameInput()">名前設定 (N)</button>
+                <button class="menu-button" onclick="showRanking()">ランキング (R)</button>
+            </div>
         </div>
         
         <!-- 名前入力画面 -->
@@ -131,7 +133,7 @@
             <input type="text" id="nameInput" class="name-input" placeholder="あなたの名前" maxlength="10">
             <div>
                 <button class="menu-button" onclick="saveName()">決定</button>
-                <button class="menu-button" onclick="showStartScreen()">戻る</button>
+                <button class="menu-button" onclick="showTitleScreen()">戻る</button>
             </div>
         </div>
         
@@ -139,7 +141,7 @@
         <div id="rankingScreen" class="overlay" style="display: none;">
             <h2 style="color: #003399;">トップ10ランキング</h2>
             <div id="rankingList" style="margin: 20px 0; text-align: left; max-height: 300px; overflow-y: auto;"></div>
-            <button class="menu-button" onclick="showStartScreen()">戻る</button>
+            <button class="menu-button" onclick="showTitleScreen()">戻る</button>
         </div>
         
         <!-- ゲームオーバー画面 -->
@@ -149,14 +151,15 @@
             <p>生存時間: <span id="finalTime">00:00</span></p>
             <p>最終得点: <span id="finalScore">0</span></p>
             <div>
-                <button class="menu-button" onclick="restartGame()">再挑戦</button>
-                <button class="menu-button" onclick="showStartScreen()">メニュー</button>
+                <button class="menu-button" onclick="restartGame()">再挑戦 (Space)</button>
+                <button class="menu-button" onclick="showTitleScreen()">メニュー (M)</button>
             </div>
         </div>
     </div>
     
     <div class="controls">
         <h3>🎮 操作方法</h3>
+        <p><strong>Enterキー</strong>: ゲーム開始</p>
         <p><strong>左右矢印キー または A/Dキー</strong>: 飛行機を操作</p>
         <p><strong>スペースキー</strong>: ゲーム再開</p>
         
@@ -176,7 +179,7 @@
         const ctx = canvas.getContext('2d');
         
         // ゲーム変数
-        let gameState = 'start'; // 'start', 'playing', 'gameOver'
+        let gameState = 'title'; // 'title', 'playing', 'gameOver'
         let playerName = '';
         let plane = { x: 400, y: 500, width: 30, height: 40, speed: 8 };
         let obstacles = [];
@@ -232,23 +235,23 @@
         }
         
         // 画面表示関数
-        function showStartScreen() {
-            document.getElementById('startScreen').style.display = 'flex';
+        function showTitleScreen() {
+            document.getElementById('titleScreen').style.display = 'flex';
             document.getElementById('nameScreen').style.display = 'none';
             document.getElementById('rankingScreen').style.display = 'none';
             document.getElementById('gameOverScreen').style.display = 'none';
-            gameState = 'start';
+            gameState = 'title';
         }
         
         function showNameInput() {
-            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('titleScreen').style.display = 'none';
             document.getElementById('nameScreen').style.display = 'flex';
             document.getElementById('nameInput').value = playerName;
             document.getElementById('nameInput').focus();
         }
         
         function showRanking() {
-            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('titleScreen').style.display = 'none';
             document.getElementById('rankingScreen').style.display = 'flex';
             updateRankingDisplay();
         }
@@ -257,7 +260,7 @@
             playerName = document.getElementById('nameInput').value.trim();
             savePlayerName();
             updatePlayerNameDisplay();
-            showStartScreen();
+            showTitleScreen();
         }
         
         function updateRankingDisplay() {
@@ -292,7 +295,7 @@
             startTime = Date.now();
             lastObstacleTime = 0;
             lastItemTime = 0;
-            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('titleScreen').style.display = 'none';
         }
         
         function restartGame() {
@@ -303,14 +306,37 @@
         // イベントリスナー
         document.addEventListener('keydown', (e) => {
             keys[e.code] = true;
+            
+            if (e.code === 'Enter') {
+                e.preventDefault();
+                if (gameState === 'title') {
+                    startGame();
+                }
+            }
+            
             if (e.code === 'Space') {
                 e.preventDefault();
                 if (gameState === 'gameOver') {
                     restartGame();
                 }
             }
-            if (e.code === 'Enter' && gameState === 'start') {
-                startGame();
+            
+            if (e.code === 'KeyN' && gameState === 'title') {
+                showNameInput();
+            }
+            
+            if (e.code === 'KeyR' && gameState === 'title') {
+                showRanking();
+            }
+            
+            if (e.code === 'KeyM' && gameState === 'gameOver') {
+                showTitleScreen();
+            }
+            
+            if (e.code === 'Escape') {
+                if (gameState !== 'playing') {
+                    showTitleScreen();
+                }
             }
         });
         
@@ -536,7 +562,7 @@
         // 初期化
         loadRanking();
         loadPlayerName();
-        showStartScreen();
+        showTitleScreen();
         gameLoop();
     </script>
 </body>
