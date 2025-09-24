@@ -755,34 +755,49 @@
         }
         
         function startGame() {
-            if (!playerName) {
-                alert('まず名前を入力してください');
-                showNameInput();
-                return;
+            try {
+                console.log('ゲーム開始処理開始...');
+                
+                if (!playerName) {
+                    alert('まず名前を入力してください');
+                    showNameInput();
+                    return;
+                }
+                
+                console.log('プレイヤー名確認OK:', playerName);
+                
+                // 全ての画面を非表示にする
+                document.getElementById('titleScreen').style.display = 'none';
+                document.getElementById('instructionsScreen').style.display = 'none';
+                document.getElementById('nameScreen').style.display = 'none';
+                document.getElementById('rankingScreen').style.display = 'none';
+                document.getElementById('gameOverScreen').style.display = 'none';
+                
+                console.log('画面非表示完了');
+                
+                // ゲーム状態を初期化
+                gameState = 'playing';
+                plane.x = 195;
+                plane.y = 720;
+                plane.width = 60;
+                plane.height = 80;
+                plane.speed = 10;
+                obstacles = [];
+                items = [];
+                score = 0;
+                gameTime = 0;
+                startTime = Date.now();
+                lastObstacleTime = 0;
+                lastItemTime = 0;
+                isMouseDown = false;
+                
+                console.log('ゲーム変数初期化完了');
+                console.log('ゲーム開始成功！');
+                
+            } catch (error) {
+                console.error('ゲーム開始エラー:', error);
+                alert('ゲーム開始でエラーが発生しました: ' + error.message);
             }
-            
-            // 全ての画面を非表示にする
-            document.getElementById('titleScreen').style.display = 'none';
-            document.getElementById('instructionsScreen').style.display = 'none';
-            document.getElementById('nameScreen').style.display = 'none';
-            document.getElementById('rankingScreen').style.display = 'none';
-            document.getElementById('gameOverScreen').style.display = 'none';
-            
-            // ゲーム状態を初期化
-            gameState = 'playing';
-            plane.x = 195;
-            plane.y = 720;
-            plane.width = 60;
-            plane.height = 80;
-            plane.speed = 10;
-            obstacles = [];
-            items = [];
-            score = 0;
-            gameTime = 0;
-            startTime = Date.now();
-            lastObstacleTime = 0;
-            lastItemTime = 0;
-            isMouseDown = false;
         }
         
         function restartGame() {
