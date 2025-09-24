@@ -734,43 +734,63 @@
         }
         
         function drawAirplane(x, y, width, height) {
-            // 機体（胴体）
+            // 機体（胴体）- メイン
             ctx.fillStyle = '#003399';
-            ctx.fillRect(x + width*0.3, y, width*0.4, height*0.8);
+            ctx.fillRect(x + width*0.35, y + height*0.1, width*0.3, height*0.7);
             
-            // 機首
+            // 機首（尖った先端）
             ctx.beginPath();
             ctx.moveTo(x + width*0.5, y);
-            ctx.lineTo(x + width*0.3, y + height*0.2);
-            ctx.lineTo(x + width*0.7, y + height*0.2);
+            ctx.lineTo(x + width*0.35, y + height*0.15);
+            ctx.lineTo(x + width*0.65, y + height*0.15);
             ctx.closePath();
             ctx.fill();
             
-            // 主翼
+            // 主翼（大きな翼）
             ctx.fillStyle = '#0066CC';
-            ctx.fillRect(x, y + height*0.4, width, height*0.15);
+            ctx.fillRect(x + width*0.05, y + height*0.35, width*0.9, height*0.2);
             
-            // 尾翼
+            // 主翼の先端を丸く
+            ctx.beginPath();
+            ctx.arc(x + width*0.05, y + height*0.45, height*0.1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x + width*0.95, y + height*0.45, height*0.1, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 水平尾翼
             ctx.fillStyle = '#003399';
-            ctx.fillRect(x + width*0.35, y + height*0.7, width*0.3, height*0.2);
+            ctx.fillRect(x + width*0.25, y + height*0.75, width*0.5, height*0.1);
             
             // 垂直尾翼
             ctx.beginPath();
-            ctx.moveTo(x + width*0.45, y + height*0.7);
-            ctx.lineTo(x + width*0.55, y + height*0.7);
-            ctx.lineTo(x + width*0.5, y + height*0.5);
+            ctx.moveTo(x + width*0.45, y + height*0.75);
+            ctx.lineTo(x + width*0.55, y + height*0.75);
+            ctx.lineTo(x + width*0.5, y + height*0.55);
             ctx.closePath();
             ctx.fill();
             
-            // コックピット
+            // コックピット（パイロット席）
             ctx.fillStyle = '#87CEEB';
             ctx.beginPath();
             ctx.arc(x + width*0.5, y + height*0.25, width*0.08, 0, Math.PI * 2);
             ctx.fill();
             
-            // エンジン
+            // エンジン部分
             ctx.fillStyle = '#666666';
-            ctx.fillRect(x + width*0.42, y + height*0.15, width*0.16, height*0.1);
+            ctx.fillRect(x + width*0.4, y + height*0.15, width*0.2, height*0.08);
+            
+            // プロペラ（回転表現）
+            ctx.strokeStyle = '#333333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x + width*0.3, y + height*0.19);
+            ctx.lineTo(x + width*0.7, y + height*0.19);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x + width*0.5, y + height*0.05);
+            ctx.lineTo(x + width*0.5, y + height*0.33);
+            ctx.stroke();
         }
         
         function drawUI() {
