@@ -786,21 +786,28 @@
         function drawUI() {
             if (gameState !== 'playing') return;
             
-            ctx.fillStyle = '#003399';
-            ctx.font = 'bold 24px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(`得点: ${score}`, 20, 40);
+            // 背景パネル
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fillRect(10, 10, 200, 80);
+            ctx.strokeStyle = '#003399';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(10, 10, 200, 80);
             
+            // 経過時間
             const minutes = Math.floor(gameTime / 60);
             const seconds = gameTime % 60;
-            ctx.fillText(`時間: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`, 20, 70);
+            ctx.fillStyle = '#003399';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`時間: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`, 20, 35);
             
-            const level = Math.min(Math.floor(gameTime / 15) + 1, 10);
-            ctx.fillText(`難易度: Lv.${level}`, 20, 100);
+            // ポイント
+            ctx.fillText(`得点: ${score}`, 20, 60);
             
+            // プレイヤー名（小さく表示）
             if (playerName) {
-                ctx.font = '16px Arial';
-                ctx.fillText(`パイロット: ${playerName}`, 20, 130);
+                ctx.font = '14px Arial';
+                ctx.fillText(`パイロット: ${playerName}`, 20, 80);
             }
         }
         
