@@ -378,6 +378,14 @@
                 return;
             }
             
+            // 全ての画面を非表示にする
+            document.getElementById('titleScreen').style.display = 'none';
+            document.getElementById('instructionsScreen').style.display = 'none';
+            document.getElementById('nameScreen').style.display = 'none';
+            document.getElementById('rankingScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'none';
+            
+            // ゲーム状態を初期化
             gameState = 'playing';
             plane.x = 400;
             plane.y = 500;
@@ -389,23 +397,9 @@
             lastObstacleTime = 0;
             lastItemTime = 0;
             isMouseDown = false;
-            
-            // 全ての画面を非表示にする
-            document.getElementById('titleScreen').style.display = 'none';
-            document.getElementById('instructionsScreen').style.display = 'none';
-            document.getElementById('nameScreen').style.display = 'none';
-            document.getElementById('rankingScreen').style.display = 'none';
-            document.getElementById('gameOverScreen').style.display = 'none';
         }
         
         function restartGame() {
-            // 全ての画面を非表示にする
-            document.getElementById('titleScreen').style.display = 'none';
-            document.getElementById('instructionsScreen').style.display = 'none';
-            document.getElementById('nameScreen').style.display = 'none';
-            document.getElementById('rankingScreen').style.display = 'none';
-            document.getElementById('gameOverScreen').style.display = 'none';
-            
             startGame();
         }
         
