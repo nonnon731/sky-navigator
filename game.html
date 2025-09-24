@@ -34,10 +34,11 @@
             border-radius: 15px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.3);
             background: white;
-            padding: 10px;
+            padding: 8px;
             position: relative;
             max-width: 100%;
             overflow: hidden;
+            margin: 5px auto;
         }
         
         canvas {
@@ -53,8 +54,8 @@
         
         @media (max-width: 850px) {
             canvas {
-                width: 95%;
-                max-width: 400px;
+                width: 98%;
+                max-width: 450px;
                 height: auto;
             }
             
@@ -183,7 +184,7 @@
     </div>
     
     <div class="game-container">
-        <canvas id="gameCanvas" width="400" height="700"></canvas>
+        <canvas id="gameCanvas" width="450" height="800"></canvas>
         
         <!-- タイトル画面 -->
         <div id="titleScreen" class="overlay">
@@ -381,7 +382,7 @@
         // ゲーム変数
         let gameState = 'title';
         let playerName = '';
-        let plane = { x: 170, y: 600, width: 60, height: 80, speed: 10 };
+        let plane = { x: 195, y: 720, width: 60, height: 80, speed: 10 };
         let obstacles = [];
         let items = [];
         let score = 0;
@@ -587,8 +588,8 @@
             
             // ゲーム状態を初期化
             gameState = 'playing';
-            plane.x = 170;
-            plane.y = 600;
+            plane.x = 195;
+            plane.y = 720;
             plane.width = 60;
             plane.height = 80;
             plane.speed = 10;
