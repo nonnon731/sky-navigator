@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANA Sky Navigator</title>
+    <title>Sky Navigator</title>
     <style>
         body {
             margin: 0;
@@ -67,34 +67,91 @@
             font-size: 0.9em;
         }
         
-        .game-over {
+        .overlay {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(255,255,255,0.95);
-            padding: 30px;
-            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+        }
+        
+        .menu-button {
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 18px;
+            background: #003399;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .menu-button:hover {
+            background: #0066cc;
+        }
+        
+        .name-input {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #003399;
+            border-radius: 5px;
+            margin: 10px;
             text-align: center;
-            border: 3px solid #ff0000;
-            display: none;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>✈️ ANA SKY NAVIGATOR ✈️</h1>
+        <h1>✈️ Sky Navigator ✈️</h1>
         <p>HTML5版 - 軽量で高速！</p>
     </div>
     
     <div class="game-container">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         
-        <div id="gameOver" class="game-over">
+        <!-- スタート画面 -->
+        <div id="startScreen" class="overlay">
+            <h2 style="color: #003399; margin-bottom: 30px;">Sky Navigator</h2>
+            <div id="playerNameDisplay" style="margin-bottom: 20px; color: #003399;"></div>
+            <button class="menu-button" onclick="startGame()">ゲーム開始</button>
+            <button class="menu-button" onclick="showNameInput()">名前設定</button>
+            <button class="menu-button" onclick="showRanking()">ランキング</button>
+        </div>
+        
+        <!-- 名前入力画面 -->
+        <div id="nameScreen" class="overlay" style="display: none;">
+            <h2 style="color: #003399;">名前入力</h2>
+            <input type="text" id="nameInput" class="name-input" placeholder="あなたの名前" maxlength="10">
+            <div>
+                <button class="menu-button" onclick="saveName()">決定</button>
+                <button class="menu-button" onclick="showStartScreen()">戻る</button>
+            </div>
+        </div>
+        
+        <!-- ランキング画面 -->
+        <div id="rankingScreen" class="overlay" style="display: none;">
+            <h2 style="color: #003399;">トップ10ランキング</h2>
+            <div id="rankingList" style="margin: 20px 0; text-align: left; max-height: 300px; overflow-y: auto;"></div>
+            <button class="menu-button" onclick="showStartScreen()">戻る</button>
+        </div>
+        
+        <!-- ゲームオーバー画面 -->
+        <div id="gameOverScreen" class="overlay" style="display: none;">
             <h2 style="color: #ff0000; margin-top: 0;">ゲーム終了</h2>
+            <div id="playerNameResult" style="margin-bottom: 10px; color: #003399;"></div>
             <p>生存時間: <span id="finalTime">00:00</span></p>
             <p>最終得点: <span id="finalScore">0</span></p>
-            <button onclick="restartGame()" style="padding: 10px 20px; font-size: 16px; background: #003399; color: white; border: none; border-radius: 5px; cursor: pointer;">再開 (スペースキー)</button>
+            <div>
+                <button class="menu-button" onclick="restartGame()">再挑戦</button>
+                <button class="menu-button" onclick="showStartScreen()">メニュー</button>
+            </div>
         </div>
     </div>
     
@@ -119,7 +176,8 @@
         const ctx = canvas.getContext('2d');
         
         // ゲーム変数
-        let gameState = 'playing';
+        let gameState = 'start'; // 'start', 'playing', 'gameOver'
+        let playerName = '';
         let plane = { x: 400, y: 500, width: 30, height: 40, speed: 8 };
         let obstacles = [];
         let items = [];
@@ -128,6 +186,7 @@
         let startTime = Date.now();
         let lastObstacleTime = 0;
         let lastItemTime = 0;
+        let ranking = [];
         
         // キー入力
         const keys = {};
@@ -140,20 +199,89 @@
             diamond: { points: 200, color: '#FFFFFF', size: 20 }
         };
         
-        // イベントリスナー
-        document.addEventListener('keydown', (e) => {
-            keys[e.code] = true;
-            if (e.code === 'Space' && gameState === 'gameOver') {
-                e.preventDefault();
-                restartGame();
+        // ローカルストレージからランキング読み込み
+        function loadRanking() {
+            const saved = localStorage.getItem('skyNavigatorRanking');
+            ranking = saved ? JSON.parse(saved) : [];
+        }
+        
+        // ランキング保存
+        function saveRanking() {
+            localStorage.setItem('skyNavigatorRanking', JSON.stringify(ranking));
+        }
+        
+        // プレイヤー名読み込み
+        function loadPlayerName() {
+            playerName = localStorage.getItem('skyNavigatorPlayerName') || '';
+            updatePlayerNameDisplay();
+        }
+        
+        // プレイヤー名保存
+        function savePlayerName() {
+            localStorage.setItem('skyNavigatorPlayerName', playerName);
+        }
+        
+        // プレイヤー名表示更新
+        function updatePlayerNameDisplay() {
+            const display = document.getElementById('playerNameDisplay');
+            if (playerName) {
+                display.textContent = `パイロット: ${playerName}`;
+            } else {
+                display.textContent = '';
             }
-        });
+        }
         
-        document.addEventListener('keyup', (e) => {
-            keys[e.code] = false;
-        });
+        // 画面表示関数
+        function showStartScreen() {
+            document.getElementById('startScreen').style.display = 'flex';
+            document.getElementById('nameScreen').style.display = 'none';
+            document.getElementById('rankingScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'none';
+            gameState = 'start';
+        }
         
-        function restartGame() {
+        function showNameInput() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('nameScreen').style.display = 'flex';
+            document.getElementById('nameInput').value = playerName;
+            document.getElementById('nameInput').focus();
+        }
+        
+        function showRanking() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('rankingScreen').style.display = 'flex';
+            updateRankingDisplay();
+        }
+        
+        function saveName() {
+            playerName = document.getElementById('nameInput').value.trim();
+            savePlayerName();
+            updatePlayerNameDisplay();
+            showStartScreen();
+        }
+        
+        function updateRankingDisplay() {
+            const list = document.getElementById('rankingList');
+            if (ranking.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #666;">まだ記録がありません</p>';
+                return;
+            }
+            
+            let html = '';
+            ranking.forEach((record, index) => {
+                const minutes = Math.floor(record.time / 60);
+                const seconds = record.time % 60;
+                const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                const rankColor = index < 3 ? ['#FFD700', '#C0C0C0', '#CD7F32'][index] : '#000';
+                
+                html += `<div style="margin: 5px 0; color: ${rankColor};">
+                    ${index + 1}. ${record.name} - ${record.score}点 (${timeStr})
+                </div>`;
+            });
+            list.innerHTML = html;
+        }
+        
+        function startGame() {
             gameState = 'playing';
             plane.x = 400;
             plane.y = 500;
@@ -164,8 +292,38 @@
             startTime = Date.now();
             lastObstacleTime = 0;
             lastItemTime = 0;
-            document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'none';
         }
+        
+        function restartGame() {
+            document.getElementById('gameOverScreen').style.display = 'none';
+            startGame();
+        }
+        
+        // イベントリスナー
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (gameState === 'gameOver') {
+                    restartGame();
+                }
+            }
+            if (e.code === 'Enter' && gameState === 'start') {
+                startGame();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+        
+        // 名前入力でEnterキー
+        document.getElementById('nameInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                saveName();
+            }
+        });
         
         function createObstacle() {
             obstacles.push({
@@ -273,16 +431,40 @@
         
         function gameOver() {
             gameState = 'gameOver';
+            
+            // ランキングに追加
+            if (playerName) {
+                ranking.push({
+                    name: playerName,
+                    score: score,
+                    time: gameTime,
+                    date: new Date().toLocaleDateString()
+                });
+                ranking.sort((a, b) => b.score - a.score);
+                ranking = ranking.slice(0, 10); // トップ10のみ
+                saveRanking();
+            }
+            
             const minutes = Math.floor(gameTime / 60);
             const seconds = gameTime % 60;
             document.getElementById('finalTime').textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
             document.getElementById('finalScore').textContent = score;
-            document.getElementById('gameOver').style.display = 'block';
+            
+            const nameResult = document.getElementById('playerNameResult');
+            if (playerName) {
+                nameResult.textContent = `${playerName} さん`;
+            } else {
+                nameResult.textContent = '';
+            }
+            
+            document.getElementById('gameOverScreen').style.display = 'flex';
         }
         
         function drawGame() {
             // 背景をクリア
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (gameState !== 'playing') return;
             
             // 飛行機を描画
             ctx.fillStyle = '#003399';
@@ -321,6 +503,8 @@
         }
         
         function drawUI() {
+            if (gameState !== 'playing') return;
+            
             // スコア
             ctx.fillStyle = '#003399';
             ctx.font = 'bold 24px Arial';
@@ -335,6 +519,12 @@
             // 難易度
             const level = Math.min(Math.floor(gameTime / 15) + 1, 10);
             ctx.fillText(`難易度: Lv.${level}`, 20, 100);
+            
+            // プレイヤー名
+            if (playerName) {
+                ctx.font = '16px Arial';
+                ctx.fillText(`パイロット: ${playerName}`, 20, 130);
+            }
         }
         
         function gameLoop() {
@@ -343,7 +533,10 @@
             requestAnimationFrame(gameLoop);
         }
         
-        // ゲーム開始
+        // 初期化
+        loadRanking();
+        loadPlayerName();
+        showStartScreen();
         gameLoop();
     </script>
 </body>
