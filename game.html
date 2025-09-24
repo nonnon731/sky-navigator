@@ -240,6 +240,11 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
+        // エラーハンドリング
+        window.addEventListener('error', function(e) {
+            console.log('JavaScript エラー:', e.message, 'at', e.filename, ':', e.lineno);
+        });
+        
         // JSONBin.io設定（より簡単な代替手段）
         const JSONBIN_BIN_ID = '676a1e2fad19ca34f8c8f8e5'; // 作成済みのBin ID
         const JSONBIN_API_KEY = '$2a$10$VQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGzOzJQKlGz'; // デモキー
@@ -989,11 +994,25 @@
             requestAnimationFrame(gameLoop);
         }
         
-        // 初期化
-        loadRanking();
-        loadPlayerName();
-        showTitleScreen();
-        gameLoop();
+        // 初期化とデバッグ
+        async function initializeGame() {
+            console.log('ゲーム初期化開始...');
+            try {
+                await loadRanking();
+                loadPlayerName();
+                showTitleScreen();
+                console.log('ゲーム初期化完了');
+                gameLoop();
+            } catch (error) {
+                console.log('初期化エラー:', error);
+                // エラーが発生してもゲームは開始
+                loadPlayerName();
+                showTitleScreen();
+                gameLoop();
+            }
+        }
+        
+        initializeGame();
     </script>
 </body>
 </html>
