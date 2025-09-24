@@ -236,9 +236,23 @@
         </div>
     </div>
     
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        
+        // Firebase設定（デモ用）
+        const firebaseConfig = {
+            apiKey: "demo-key",
+            authDomain: "sky-navigator-demo.firebaseapp.com",
+            databaseURL: "https://sky-navigator-demo-default-rtdb.firebaseio.com",
+            projectId: "sky-navigator-demo"
+        };
+        
+        // Firebase初期化（デモ用 - 実際は動作しません）
+        let database = null;
+        console.log('オンラインランキング機能は準備中です');
         
         // ゲーム変数
         let gameState = 'title';
@@ -310,10 +324,39 @@
             isMouseDown = false;
         });
         
-        // ローカルストレージ関数
+        // オンラインランキング保存
+        function saveOnlineRanking(playerName, score, time) {
+            if (!database) return;
+            
+            const rankingRef = database.ref('rankings');
+            rankingRef.push({
+                name: playerName,
+                score: score,
+                time: time,
+                date: new Date().toISOString(),
+                timestamp: Date.now()
+            });
+        }
+        
+        // オンラインランキング読み込み
         function loadRanking() {
-            const saved = localStorage.getItem('skyNavigatorRanking');
-            ranking = saved ? JSON.parse(saved) : [];
+            if (!database) {
+                const saved = localStorage.getItem('skyNavigatorRanking');
+                ranking = saved ? JSON.parse(saved) : [];
+                return;
+            }
+            
+            const rankingRef = database.ref('rankings');
+            rankingRef.orderByChild('score').limitToLast(50).once('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    ranking = Object.values(data)
+                        .sort((a, b) => b.score - a.score)
+                        .slice(0, 10);
+                } else {
+                    ranking = [];
+                }
+            });
         }
         
         function saveRanking() {
@@ -375,7 +418,24 @@
         function showRanking() {
             document.getElementById('titleScreen').style.display = 'none';
             document.getElementById('rankingScreen').style.display = 'flex';
-            updateRankingDisplay();
+            
+            // オンラインランキングを読み込み
+            if (database) {
+                const rankingRef = database.ref('rankings');
+                rankingRef.orderByChild('score').limitToLast(50).once('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        ranking = Object.values(data)
+                            .sort((a, b) => b.score - a.score)
+                            .slice(0, 10);
+                    } else {
+                        ranking = [];
+                    }
+                    updateRankingDisplay();
+                });
+            } else {
+                updateRankingDisplay();
+            }
         }
         
         function saveName() {
@@ -610,15 +670,19 @@
             gameState = 'gameOver';
             
             if (playerName) {
-                ranking.push({
-                    name: playerName,
-                    score: score,
-                    time: gameTime,
-                    date: new Date().toLocaleDateString()
-                });
-                ranking.sort((a, b) => b.score - a.score);
-                ranking = ranking.slice(0, 10);
-                saveRanking();
+                if (database) {
+                    saveOnlineRanking(playerName, score, gameTime);
+                } else {
+                    ranking.push({
+                        name: playerName,
+                        score: score,
+                        time: gameTime,
+                        date: new Date().toLocaleDateString()
+                    });
+                    ranking.sort((a, b) => b.score - a.score);
+                    ranking = ranking.slice(0, 10);
+                    saveRanking();
+                }
             }
             
             const minutes = Math.floor(gameTime / 60);
